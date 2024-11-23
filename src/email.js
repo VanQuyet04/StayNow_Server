@@ -6,17 +6,24 @@ const sendOtpEmail = async (toEmail, otpCode) => {
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-            user: process.env.FROM_EMAIL, 
-            pass: process.env.APP_PASSWORD, 
+            user: process.env.FROM_EMAIL,
+            pass: process.env.APP_PASSWORD,
         }
     });
 
     // Cấu hình email
+    const otpValidityMinutes = 10; // Thời hạn OTP: 10 phút
     const mailOptions = {
-        from:process.env.FROM_NAME,  // Địa chỉ email người gửi
-        to: toEmail,                   // Địa chỉ email người nhận
-        subject: 'OTP Verification',   // Tiêu đề email
-        html: `<html><body><h1>Your OTP code is ${otpCode}</h1></body></html>` // Nội dung email
+        from: `"Stay Now" <${process.env.FROM_NAME}>`,
+        to: toEmail,
+        subject: 'OTP Verification',
+        html: `
+        <html>
+            <body>
+                <h4>Your OTP code is ${otpCode}</h4>
+                <p>Mã này có hiệu lực trong <strong>${otpValidityMinutes} phút</strong>. Hãy sử dụng ngay!</p>            </body>
+        </html>
+    `
     };
 
     // Gửi email
