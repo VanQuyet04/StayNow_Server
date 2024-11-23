@@ -2,4 +2,4 @@ brevo.js là file chứa code gửi mail bằng api của brevo (sendinblue)
 smtp.js là file chứa code gửi mail bằng SMTP của gmail thông qua nodemailer
 ------------------------------------------------------------------------
 
-server.js là file chứa code gửi mail bằng SMTP (là file chạy chính hiện tại) với cấu trúc tốt hơn, phân chia các mục
+server.js là file chứa code gửi mail bằng SMTP (là file chạy chính hiện tại) với cấu trúc rõ ràng hơn 
