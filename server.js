@@ -85,7 +85,7 @@ app.post('/resend-otp', async (req, res) => {
 });
 
 
-const PORT = 5000;
+const PORT = 10000;
 app.listen(PORT, () => {
     console.log(`Server đang chạy tại http://localhost:${PORT}`);
 });
