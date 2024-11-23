@@ -14,7 +14,7 @@ const sendOtpEmail = async (toEmail, otpCode) => {
     // Cấu hình email
     const otpValidityMinutes = 10; // Thời hạn OTP: 10 phút
     const mailOptions = {
-        from: `"Stay Now" <${process.env.FROM_NAME}>`,
+        from: `"${process.env.FROM_NAME}" <noreply@staynow.com>`,
         to: toEmail,
         subject: 'OTP Verification',
         html: `
