@@ -5,7 +5,7 @@ const admin = require('firebase-admin');
 // const serviceAccount = require('../service/staynowapp1-firebase-adminsdk.json');
 // Đọc file bí mật từ /etc/secrets
 const serviceAccount = JSON.parse(
-  fs.readFileSync('/etc/secrets/staynowapp1-firebase-adminsdk.txt', 'utf8')
+  fs.readFileSync('/etc/secrets/staynowapp1-firebase-adminsdk', 'utf8')
 );
 
 admin.initializeApp({
