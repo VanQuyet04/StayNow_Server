@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 
 // Import các module
 const verifyToken = require('./src/verifyToken');
-const { saveOtpToUserOtp, verifyOtpFromRealTime,resendOtp } = require('./src/otp');
+const { saveOtpToUserOtp, verifyOtpFromRealTime, resendOtp } = require('./src/otp');
 const sendOtpEmail = require('./src/email');
 
 const app = express();
@@ -85,7 +85,7 @@ app.post('/resend-otp', async (req, res) => {
 });
 
 
-const PORT = 10000;
-app.listen(PORT, () => {
-    console.log(`Server đang chạy tại http://localhost:${PORT}`);
+const port = process.env.PORT || 5000;
+app.listen(port, () => {
+    console.log(`Server đang chạy tại cổng ${port}`);
 });
