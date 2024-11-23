@@ -1,6 +1,6 @@
 // src/firebase.js
 const admin = require('firebase-admin');
-const serviceAccount = require('../service/staynowapp1-firebase-adminsdk-mxmmo-778c905420.json');
+const serviceAccount = require('../service/staynowapp1-firebase-adminsdk.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
