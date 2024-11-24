@@ -6,24 +6,14 @@ const sendOtpEmail = require('./email')
 const saveOtpToUserOtp = async (uid, email, otpCode, expiry) => {
     try {
         const userRef = db.ref(`UserOtp/${uid}`);
-        await userRef.set({ email, otpCode, expiry, lastOtpSendAt: Date.now() });
+        await userRef.set({ email, otpCode, expiry});
         console.log(`OTP đã được lưu thành công cho UID: ${uid}`);
     } catch (error) {
         console.error('Lỗi khi lưu OTP vào bảng userOtp:', error.message);
         throw new Error('Lỗi lưu OTP');
     }
 };
-const getLastOtpSendTime = async (uid) => {
-    const userRef = db.ref(`UserOtp/${uid}`);
-    const snapshot = await userRef.once('value');
-    const userData = snapshot.val();
-    return userData ? userData.lastOtpSendAt : null;
 
-}
-const updateLastOtpSendTime = async (uid, currentTime) => {
-    const userRef = db.ref(`UserOtp/${uid}`);
-    await userRef.update({ lastOtpSendAt: currentTime });
-}
 const updateOtpForUser = async (uid, otpCode, expiry) => {
     try {
         const userRef = db.ref(`UserOtp/${uid}`);
@@ -96,4 +86,4 @@ const resendOtp = async (uid) => {
     }
 };
 
-module.exports = { saveOtpToUserOtp, getLastOtpSendTime, updateLastOtpSendTime, verifyOtpFromRealTime, resendOtp };
+module.exports = { saveOtpToUserOtp, verifyOtpFromRealTime, resendOtp };

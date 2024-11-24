@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 
 // Import các module
 const verifyToken = require('./src/verifyToken');
-const { saveOtpToUserOtp, getLastOtpSendTime, updateLastOtpSendTime, verifyOtpFromRealTime, resendOtp } = require('./src/otp');
+const { saveOtpToUserOtp,verifyOtpFromRealTime, resendOtp } = require('./src/otp');
 const sendOtpEmail = require('./src/email');
 
 const app = express();
@@ -28,24 +28,10 @@ app.post('/verify-token', async (req, res) => {
         console.log("Email xác thực:", userEmail);
         console.log("UID xác thực:", userUid);
 
-        //Lấy tgian gửi otp lần trước từ firebase
-        const lastOtpSendAt = await getLastOtpSendTime(userUid);
-
-        const currentTime = Date.now();
-        const cooldownPeriod = 1 * 60 * 1000;
-
-        //kiểm tra nếu tgian gửi otp lần trước nhỏ hơn 1 phút
-        if (lastOtpSendAt && (currentTime - lastOtpSendAt < cooldownPeriod)) {
-            return res.status(400).json({ error: 'Bạn đang ấn quá nhanh khi yêu cầu OTP' })
-        }
-
         const otpCode = Math.floor(100000 + Math.random() * 900000);
         const otpExpiry = Date.now() + 10 * 60 * 1000;
 
         await saveOtpToUserOtp(userUid, userEmail, otpCode, otpExpiry);
-
-        await updateLastOtpSendTime(userUid, currentTime);
-
         const emailResult = await sendOtpEmail(userEmail, otpCode);
 
         res.json({
