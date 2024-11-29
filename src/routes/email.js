@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const config=require('../config/config')
 
 // Hàm gửi email qua Gmail SMTP
 const sendOtpEmail = async (toEmail, otpCode) => {
@@ -6,15 +7,15 @@ const sendOtpEmail = async (toEmail, otpCode) => {
     const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
-            user: process.env.FROM_EMAIL,
-            pass: process.env.APP_PASSWORD,
+            user: config.FROM_EMAIL,
+            pass: config.APP_PASSWORD,
         }
     });
 
     // Cấu hình email
     const otpValidityMinutes = 10; // Thời hạn OTP: 10 phút
     const mailOptions = {
-        from: `"${process.env.FROM_NAME}" <noreply@staynow.com>`,
+        from: `"${config.FROM_NAME}" <noreply@staynow.com>`,
         to: toEmail,
         subject: 'OTP Verification',
         html: `
