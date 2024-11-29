@@ -3,9 +3,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const config = require('./src/config/config')
 // Import các module
-const verifyToken = require('./src/verifyToken');
-const { saveOtpToUserOtp, verifyOtpFromRealTime, resendOtp } = require('./src/otp');
-const sendOtpEmail = require('./src/email');
+const verifyToken = require('./src/routes/verifyToken');
+const { saveOtpToUserOtp, verifyOtpFromRealTime, resendOtp } = require('./src/routes/otp');
+const sendOtpEmail = require('./src/routes/email');
 
 const app = express();
 app.use(bodyParser.json());
