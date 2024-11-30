@@ -37,7 +37,7 @@ router.post('/callback', async (req, res) => {
         // Nếu MAC hợp lệ, xử lý dữ liệu
         const dataJson = JSON.parse(dataStr); // Giải mã dữ liệu
         console.log("Thông tin thanh toán:", dataJson);
-        const app_trans_id = dataJson.app_trans_id
+        const app_trans_id = dataJson.app_trans_id.toString()
         console.log("app_trans_id", app_trans_id);
 
         //Tìm hóa đơn gốc từ transactionId
@@ -45,7 +45,7 @@ router.post('/callback', async (req, res) => {
             .doc(app_trans_id)
             .get();
 
-        if (!paymentTransRef.exits) {
+        if (!paymentTransRef.exists) {
             console.error("Không tìm thấy giao dịch tương ứng")
             return res.status(400).json({ return_code:-1, return_message: "Transaction not found" })
         }
