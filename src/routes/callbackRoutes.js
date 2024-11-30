@@ -5,7 +5,7 @@ const {io}= require('../config/socket')
 const CryptoJS = require('crypto-js');
 const router = express.Router();
 const config = require('../config/config');
-const { dbFireStore } = require('./firebase');
+const { dbFirestore } = require('./firebase');
 
 io.on('connection', (socket) => {
     console.log('Client connected');
@@ -40,7 +40,7 @@ router.post('/callback', async (req, res) => {
         const app_trans_id = dataJson.app_trans_id
 
         //Tìm hóa đơn gốc từ transactionId
-        const paymentTransRef = await dbFireStore.collection('PaymentTransaction')
+        const paymentTransRef = await dbFirestore.collection('PaymentTransaction')
             .doc(app_trans_id)
             .get();
 
@@ -53,7 +53,7 @@ router.post('/callback', async (req, res) => {
 
         //cập nhật status cho originalTrans
         if (originalTrans.contractId) {
-            await dbFireStore
+            await dbFirestore
                 .collection('HopDong')
                 .doc(originalTrans.contractId)
                 .update({
@@ -78,7 +78,7 @@ router.post('/callback', async (req, res) => {
             updateAt: new Date()
         }
 
-        await dbFireStore.collection('PaymentTransaction')
+        await dbFirestore.collection('PaymentTransaction')
             .doc(app_trans_id)
             .set(paymentTransaction, { merge: true });
 
