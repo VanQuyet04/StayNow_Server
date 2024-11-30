@@ -57,7 +57,7 @@ router.post('/callback', async (req, res) => {
                 .collection('HopDong')
                 .doc(originalTrans.contractId)
                 .update({
-                    'hoaDonHopDong.status': 'PAIR',
+                    'hoaDonHopDong.trangThai': 'PAID',
                     updatedAt: new Date()
                 });
         }
@@ -74,7 +74,7 @@ router.post('/callback', async (req, res) => {
             channel: dataJson.channel,
             merchant_user_id: dataJson.merchant_user_id,
             zp_user_id: dataJson.zp_user_id,
-            status: 'PAIR',
+            status: 'PAID',
             updateAt: new Date()
         }
 
