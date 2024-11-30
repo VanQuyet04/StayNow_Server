@@ -1,5 +1,5 @@
 // src/otp.js
-const db = require('./firebase');  // Import Firebase database
+const {db} = require('./firebase');  // Import Firebase database
 
 const sendOtpEmail = require('./email')
 

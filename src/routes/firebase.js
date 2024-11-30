@@ -1,8 +1,8 @@
 // src/firebase.js
 const fs = require('fs');
 const admin = require('firebase-admin');
-const config=require('../config/config')
-// const serviceAccount = require('../service/staynowapp1-firebase-adminsdk.json');
+const config = require('../config/config')
+
 // Đọc file bí mật từ /etc/secrets
 const serviceAccount = JSON.parse(
   fs.readFileSync('/etc/secrets/staynowapp1-firebase-adminsdk', 'utf8')
@@ -16,4 +16,6 @@ admin.initializeApp({
 console.log("Khởi tạo firebase sdk thành công");
 
 const db = admin.database();
-module.exports = db;
+const dbFirestore = admin.firestore();
+
+module.exports = { db, dbFirestore }
