@@ -1,6 +1,6 @@
 const express = require('express');
 
-const {io}= require('../config/socket')
+const { io } = require('../config/socket')
 
 const CryptoJS = require('crypto-js');
 const router = express.Router();
@@ -38,6 +38,7 @@ router.post('/callback', async (req, res) => {
         const dataJson = JSON.parse(dataStr); // Giải mã dữ liệu
         console.log("Thông tin thanh toán:", dataJson);
         const app_trans_id = dataJson.app_trans_id
+        console.log("app_trans_id", app_trans_id);
 
         //Tìm hóa đơn gốc từ transactionId
         const paymentTransRef = await dbFirestore.collection('PaymentTransaction')
@@ -46,7 +47,7 @@ router.post('/callback', async (req, res) => {
 
         if (!paymentTransRef.exits) {
             console.error("Không tìm thấy giao dịch tương ứng")
-            return res.status(400).json({ return_code, return_message: "Transaction not found" })
+            return res.status(400).json({ return_code:-1, return_message: "Transaction not found" })
         }
 
         const originalTrans = paymentTransRef.data();
@@ -61,7 +62,7 @@ router.post('/callback', async (req, res) => {
                     updatedAt: new Date()
                 });
         }
-        
+
         io.emit('contractPaymentUpdate', {
             contractId: originalTrans.contractId,
             status: 'PAID'
