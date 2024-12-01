@@ -64,6 +64,6 @@ router.post('/create-order', async (req, res) => {
     }
 });
 
-cron.schedule('20 * * * *',checkAndDeleteExpireOrders);
+cron.schedule('/20 * * * *',checkAndDeleteExpireOrders);
 
 module.exports = router;
