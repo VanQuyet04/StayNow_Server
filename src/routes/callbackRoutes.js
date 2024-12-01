@@ -61,13 +61,21 @@ router.post('/callback', async (req, res) => {
                     const contractData = doc.data();
                     if (contractData && contractData.hoaDonHopDong && contractData.hoaDonHopDong.idHoaDon === originalTrans.billId) {
                         // Cập nhật trạng thái hóa đơn và hợp đồng
-                        await contractRef.update({
-                            'hoaDonHopDong.trangThai': 'PAID',
-                            'trangThai': 'ACTIVE',
-                            'ngayThanhToan': dataJson.server_time,
+                        await contractRef.set({
+                            hoaDonHopDong: {
+                                trangThai: 'PAID',
+                                paymentDate: dataJson.server_time,
+                            },
+                            trangThai: 'ACTIVE',
                             updatedAt: new Date()
-                        });
-                        console.log("Cập nhật trạng thái thành công!");
+                        }, { merge: true })
+                            .then(() => {
+                                console.log("Cập nhật hoặc thêm mới thành công!");
+                            })
+                            .catch((error) => {
+                                console.error("Lỗi khi cập nhật hoặc thêm mới: ", error);
+                            });
+
                     }
                 }
             });
