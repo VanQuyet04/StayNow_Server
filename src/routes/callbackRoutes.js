@@ -55,30 +55,37 @@ router.post('/callback', async (req, res) => {
         if (originalTrans.contractId) {
             const contractRef = dbFirestore.collection('HopDong').doc(originalTrans.contractId);
 
-            // Sử dụng onSnapshot để theo dõi thay đổi của hợp đồng
-            contractRef.onSnapshot(async (doc) => {
+            contractRef.get().then(async (doc) => {
                 if (doc.exists) {
                     const contractData = doc.data();
-                    if (contractData && contractData.hoaDonHopDong && contractData.hoaDonHopDong.idHoaDon === originalTrans.billId) {
+                    if (
+                        contractData &&
+                        contractData.hoaDonHopDong &&
+                        contractData.hoaDonHopDong.idHoaDon === originalTrans.billId &&
+                        contractData.hoaDonHopDong.trangThai !== 'PAID'
+                    ) {
                         // Cập nhật trạng thái hóa đơn và hợp đồng
-                        await contractRef.set({
-                            hoaDonHopDong: {
-                                trangThai: 'PAID',
-                                paymentDate: dataJson.server_time,
+                        await contractRef.set(
+                            {
+                                hoaDonHopDong: {
+                                    trangThai: 'PAID',
+                                    paymentDate: dataJson.server_time,
+                                },
+                                trangThai: 'ACTIVE',
+                                updatedAt: new Date(),
                             },
-                            trangThai: 'ACTIVE',
-                            updatedAt: new Date()
-                        }, { merge: true })
+                            { merge: true }
+                        )
                             .then(() => {
                                 console.log("Cập nhật hoặc thêm mới thành công!");
                             })
                             .catch((error) => {
                                 console.error("Lỗi khi cập nhật hoặc thêm mới: ", error);
                             });
-
                     }
                 }
             });
+            
         }
         //Tạo đối tượng lưu thông tin thanh toán từ callback
         const paymentTransaction = {
