@@ -21,7 +21,7 @@ router.post('/create-order', async (req, res) => {
             app_user: 'StayNow',
             app_trans_id: `${moment().format('YYMMDD')}_${transID}`,
             app_time: Date.now(),
-            expire_duration_seconds: 1800,
+            expire_duration_seconds: 900,
             amount: amount,
             item: items,
             description: `Payment for order #${transID}`,
@@ -64,6 +64,6 @@ router.post('/create-order', async (req, res) => {
     }
 });
 
-cron.schedule('30 */1 * * *',checkAndDeleteExpireOrders);
+cron.schedule('20 * * * *',checkAndDeleteExpireOrders);
 
 module.exports = router;

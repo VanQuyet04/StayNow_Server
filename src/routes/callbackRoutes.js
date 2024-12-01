@@ -38,7 +38,6 @@ router.post('/callback', async (req, res) => {
         const dataJson = JSON.parse(dataStr); // Giải mã dữ liệu
         console.log("Thông tin thanh toán:", dataJson);
         const app_trans_id = dataJson.app_trans_id.toString()
-        console.log("app_trans_id", app_trans_id);
 
         //Tìm hóa đơn gốc từ transactionId
         const paymentTransRef = await dbFirestore.collection('PaymentTransaction')
@@ -47,27 +46,32 @@ router.post('/callback', async (req, res) => {
 
         if (!paymentTransRef.exists) {
             console.error("Không tìm thấy giao dịch tương ứng")
-            return res.status(400).json({ return_code:-1, return_message: "Transaction not found" })
+            return res.status(400).json({ return_code: -1, return_message: "Transaction not found" })
         }
 
         const originalTrans = paymentTransRef.data();
 
-        //cập nhật status cho originalTrans
+        // Cập nhật trạng thái thanh toán của hóa đơn thành PAID
         if (originalTrans.contractId) {
-            await dbFirestore
-                .collection('HopDong')
-                .doc(originalTrans.contractId)
-                .update({
-                    'hoaDonHopDong.trangThai': 'PAID',
-                    updatedAt: new Date()
-                });
+            const contractRef = dbFirestore.collection('HopDong').doc(originalTrans.contractId);
+
+            // Sử dụng onSnapshot để theo dõi thay đổi của hợp đồng
+            contractRef.onSnapshot(async (doc) => {
+                if (doc.exists) {
+                    const contractData = doc.data();
+                    if (contractData && contractData.hoaDonHopDong && contractData.hoaDonHopDong.idHoaDon === originalTrans.billId) {
+                        // Cập nhật trạng thái hóa đơn và hợp đồng
+                        await contractRef.update({
+                            'hoaDonHopDong.trangThai': 'PAID',
+                            'trangThai': 'ACTIVE',
+                            'ngayThanhToan': dataJson.server_time,
+                            updatedAt: new Date()
+                        });
+                        console.log("Cập nhật trạng thái thành công!");
+                    }
+                }
+            });
         }
-
-        io.emit('contractPaymentUpdate', {
-            contractId: originalTrans.contractId,
-            status: 'PAID'
-        });
-
         //Tạo đối tượng lưu thông tin thanh toán từ callback
         const paymentTransaction = {
             zp_trans_id: dataJson.zp_trans_id,
@@ -84,7 +88,6 @@ router.post('/callback', async (req, res) => {
             .set(paymentTransaction, { merge: true });
 
         console.log("Thanh toán thành công:", app_trans_id);
-
 
         // Phản hồi lại Zalopay
         return res.status(200).json({ return_code: 1, return_message: "Success" });
