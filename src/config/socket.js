@@ -1,15 +1,10 @@
-const http = require('http');
 const express = require('express');
-const { Server } = require('socket.io');
-
+const http = require("http");
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-    cors: {
-        origin: "*", // Điều chỉnh origin cụ thể của bạn
-        methods: ["GET", "POST"]
-    }
-});
+const {Server}=require("socket.io");
+
+const io = new Server(server);
 
 // Cấu hình socket events
 io.on('connection', (socket) => {
