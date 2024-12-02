@@ -69,7 +69,7 @@ router.post('/callback', async (req, res) => {
                             {
                                 hoaDonHopDong: {
                                     trangThai: 'PAID',
-                                    paymentDate: dataJson.server_time,
+                                    paymentDate: dataJson.server_time.toString(),
                                 },
                                 trangThai: 'ACTIVE',
                                 updatedAt: new Date(),
