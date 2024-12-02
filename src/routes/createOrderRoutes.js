@@ -44,6 +44,7 @@ router.post('/create-order', async (req, res) => {
 
         const response = await axios.post(config.endpoint, null, { params: order });
         paymentTransaction.zp_trans_token = response.data.zp_trans_token
+        paymentTransaction.order_url = response.data.order_url
 
         // Lưu thông tin chi tiết thanh toán vào Firestore
         await dbFirestore.collection('PaymentTransaction').doc(order.app_trans_id).set(paymentTransaction);
@@ -65,5 +66,6 @@ router.post('/create-order', async (req, res) => {
 });
 
 cron.schedule('*/20 * * * *',checkAndDeleteExpireOrders);
+cron.schedule('0 */6 * * *', checkAndUpdateContracts); 
 
 module.exports = router;
