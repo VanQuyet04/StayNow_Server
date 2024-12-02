@@ -44,5 +44,4 @@ async function checkAndUpdateContracts() {
     });
   }
 
-
 module.exports = {checkAndDeleteExpireOrders,checkAndUpdateContracts}

@@ -22,8 +22,11 @@ router.post('/callback', async (req, res) => {
     const dataStr = callbackData.data; // Dữ liệu từ Zalopay
     const reqMac = callbackData.mac; // MAC từ Zalopay
 
-    console.log(callbackData);
-
+    io.emit('paymentCallback', {
+        status: 'success',  
+        data: dataStr
+    });
+    
     // Tính toán MAC từ dữ liệu nhận được
     const calculatedMac = CryptoJS.HmacSHA256(dataStr, config.key2).toString();
     //so sánh mac
@@ -85,7 +88,7 @@ router.post('/callback', async (req, res) => {
                     }
                 }
             });
-            
+
         }
         //Tạo đối tượng lưu thông tin thanh toán từ callback
         const paymentTransaction = {
