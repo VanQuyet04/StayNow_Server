@@ -5,7 +5,7 @@ const moment = require('moment');
 const cron = require('node-cron')
 
 const {dbFirestore } = require('./firebase');
-const {checkAndDeleteExpireOrders,checkAndUpdateContracts} = require('./checkExpireOrder')
+const {checkAndDeleteExpireOrders,checkBillContractAndUpdateContracts,checkAndUpdateContractsStatus} = require('./checkExpireOrder')
 
 const router = express.Router();
 const config = require('../config/config');
@@ -66,6 +66,7 @@ router.post('/create-order', async (req, res) => {
 });
 
 cron.schedule('*/20 * * * *',checkAndDeleteExpireOrders);
-cron.schedule('0 */6 * * *', checkAndUpdateContracts); 
+cron.schedule('0 */1 * * *', checkBillContractAndUpdateContracts);
+cron.schedule('0 */1 * * *', checkAndUpdateContractsStatus); 
 
 module.exports = router;

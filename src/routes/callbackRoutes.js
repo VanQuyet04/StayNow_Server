@@ -48,6 +48,7 @@ router.post('/callback', async (req, res) => {
         // Cập nhật trạng thái thanh toán của hóa đơn thành PAID
         if (originalTrans.contractId) {
             const contractRef = dbFirestore.collection('HopDong').doc(originalTrans.contractId);
+            const roomRef = dbFirestore.collection('PhongTro').doc(contractRef.maPhong)
 
             contractRef.get().then(async (doc) => {
                 if (doc.exists) {
@@ -76,9 +77,24 @@ router.post('/callback', async (req, res) => {
                             .catch((error) => {
                                 console.error("Lỗi khi cập nhật hoặc thêm mới: ", error);
                             });
+
+                        // Cập nhật trạng thái phòng thành true
+                        await roomRef.update(
+                            {
+                                Trang_thaiphong: true,
+                            }
+                        )
+                            .then(() => {
+                                console.log("Cập nhật trạng thái phòng thành công!");
+                            })
+                            .catch((error) => {
+                                console.error("Lỗi khi cập nhật trạng thái phòng: ", error);
+                            });
+
                     }
                 }
             });
+
 
         }
         //Tạo đối tượng lưu thông tin thanh toán từ callback
