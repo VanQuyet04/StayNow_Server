@@ -6,26 +6,18 @@ const router = express.Router();
 const config = require('../config/config');
 const { dbFirestore } = require('./firebase');
 
-io.on('connection', (socket) => {
-    console.log('Client connected');
-
-    socket.on('disconnect', () => {
-        console.log('Client disconnected');
-
-    });
-
-})
-
 router.post('/callback', async (req, res) => {
-    const callbackData = req.body;
+    const callbackData = req.body
     const dataStr = callbackData.data; // Dữ liệu từ Zalopay
     const reqMac = callbackData.mac; // MAC từ Zalopay
 
+    console.log("Emit paymentCallback to client");
     io.emit('paymentCallback', {
-        status: 'success',  
+        status: 'success',
         data: dataStr
     });
-    
+    console.log("Emit completed");
+
     // Tính toán MAC từ dữ liệu nhận được
     const calculatedMac = CryptoJS.HmacSHA256(dataStr, config.key2).toString();
     //so sánh mac
