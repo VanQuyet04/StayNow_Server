@@ -65,7 +65,7 @@ router.post('/create-order', async (req, res) => {
     }
 });
 
-cron.schedule('*/20 * * * *',checkAndDeleteExpireOrders);
+cron.schedule('*/10 * * * *',checkAndDeleteExpireOrders);
 cron.schedule('0 */1 * * *', checkBillContractAndUpdateContracts);
 cron.schedule('0 */1 * * *', checkAndUpdateContractsStatus); 
 
