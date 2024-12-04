@@ -138,24 +138,24 @@ async function checkAndUpdateExpiresSoonContracts() {
           trangThai: 'EXPIRESOON',
         });
 
-        // // Tạo thông báo mới
-        // const notification = {
-        //   title: 'Hợp đồng sắp hết hạn!!!',
-        //   message: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sắp hết hạn vào ngày ${ngayKetThuc}.`,
-        //   time: currentDate.toTimeString().split(' ')[0], // Lấy thời gian hiện tại (giờ phút giây)
-        //   date: currentDate.toLocaleDateString('vi-VN'), // Lấy ngày hiện tại
-        //   timestamp: Date.now(), // Timestamp hiện tại
-        //   mapLink: '', // Bạn có thể thêm đường dẫn bản đồ nếu cần
-        // };
+        // Tạo thông báo mới
+        const notification = {
+          title: 'Hợp đồng sắp hết hạn!!!',
+          message: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sắp hết hạn vào ngày ${ngayKetThuc}.`,
+          time: currentDate.toTimeString().split(' ')[0], // Lấy thời gian hiện tại (giờ phút giây)
+          date: currentDate.toLocaleDateString('vi-VN'), // Lấy ngày hiện tại
+          timestamp: Date.now(), // Timestamp hiện tại
+          mapLink: '', // Bạn có thể thêm đường dẫn bản đồ nếu cần
+        };
 
-        // // Gửi thông báo cho cả người thuê và chủ trọ
-        // const userIds = [contract.nguoiThue.maNguoiDung, contract.chuNha.maNguoiDung];
-        // for (const userId of userIds) {
-        //   const ref = db.ref(`ThongBao/${userId}`);
-        //   await ref.push(notification);
-        // }
+        // Gửi thông báo cho cả người thuê và chủ trọ
+        const userIds = [contract.nguoiThue.maNguoiDung, contract.chuNha.maNguoiDung];
+        for (const userId of userIds) {
+          const ref = db.ref(`ThongBao/${userId}`);
+          await ref.push(notification);
+        }
 
-        // console.log(`Hợp đồng ${contractId} đã được cập nhật trạng thái thành EXPIRESOON và thông báo đã được gửi.`);
+        console.log(`Hợp đồng ${contractId} đã được cập nhật trạng thái thành EXPIRESOON và thông báo đã được gửi.`);
 
       }
     }
