@@ -4,8 +4,8 @@ const CryptoJS = require('crypto-js');
 const moment = require('moment');
 const cron = require('node-cron')
 
-const {dbFirestore } = require('./firebase');
-const {checkAndDeleteExpireOrders,checkBillContractAndUpdateContracts,checkAndUpdateContractsStatus} = require('./checkExpireOrder')
+const { dbFirestore } = require('./firebase');
+const { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts } = require('./checkExpireOrder')
 
 const router = express.Router();
 const config = require('../config/config');
@@ -54,7 +54,7 @@ router.post('/create-order', async (req, res) => {
             zalopay_response: response.data
         });
         console.log(response.data);
-        
+
 
     } catch (error) {
         console.error('Order creation error:', error);
@@ -65,8 +65,10 @@ router.post('/create-order', async (req, res) => {
     }
 });
 
-cron.schedule('*/10 * * * *',checkAndDeleteExpireOrders);
+cron.schedule('*/10 * * * *', checkAndDeleteExpireOrders);
 cron.schedule('0 */1 * * *', checkBillContractAndUpdateContracts);
-cron.schedule('0 */1 * * *', checkAndUpdateContractsStatus); 
+cron.schedule('0 */1 * * *', checkAndUpdateContractsStatus);
+cron.schedule('0 */1 * * *', checkAndUpdateExpiredContracts);
+
 
 module.exports = router;

@@ -66,7 +66,6 @@ router.post('/callback', async (req, res) => {
                                     trangThai: 'PAID',
                                     paymentDate: dataJson.server_time.toString(),
                                 },
-                                trangThai: 'ACTIVE',
                                 updatedAt: new Date(),
                             },
                             { merge: true }
@@ -78,18 +77,6 @@ router.post('/callback', async (req, res) => {
                                 console.error("Lỗi khi cập nhật hoặc thêm mới: ", error);
                             });
 
-                        // Cập nhật trạng thái phòng thành true
-                        await roomRef.update(
-                            {
-                                Trang_thaiphong: true,
-                            }
-                        )
-                            .then(() => {
-                                console.log("Cập nhật trạng thái phòng thành công!");
-                            })
-                            .catch((error) => {
-                                console.error("Lỗi khi cập nhật trạng thái phòng: ", error);
-                            });
 
                     }
                 }

@@ -81,6 +81,34 @@ async function checkAndUpdateContractsStatus() {
   }
 }
 
+// kiểm tra nếu quá hạn hợp đồng thì tự chuyển đổi trạng thái qua EXPIRE
+async function checkAndUpdateExpiredContracts() {
+  const contractsRef = db.collection('HopDong');
+  const currentDate = new Date(); // Lấy ngày hiện tại
 
+  try {
+    const snapshot = await contractsRef.get();
 
-module.exports = { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus }
+    for (const doc of snapshot.docs) {
+      const contract = doc.data();
+      const contractId = doc.id;
+
+      // Lấy ngày kết thúc và chuyển đổi thành Date object
+      const ngayKetThuc = contract.ngayKetThuc; // Giả sử 'ngayKetThuc' là string dạng 'dd/MM/yyyy'
+      const [day, month, year] = ngayKetThuc.split('/').map(Number); // Chuyển đổi định dạng
+      const endDate = new Date(year, month - 1, day);
+
+      // Kiểm tra nếu ngày kết thúc đã qua và trạng thái chưa là EXPIRED
+      if (endDate < currentDate && contract.trangThai !== 'EXPIRED') {
+        await contractsRef.doc(contractId).update({
+          trangThai: 'EXPIRED',
+        });
+        console.log(`Hợp đồng ${contractId} đã được cập nhật trạng thái thành EXPIRED.`);
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi kiểm tra và cập nhật trạng thái hợp đồng:', error);
+  }
+}
+
+module.exports = { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus,checkAndUpdateExpiredContracts}
