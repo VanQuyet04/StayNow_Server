@@ -5,7 +5,7 @@ const moment = require('moment');
 const cron = require('node-cron')
 
 const { dbFirestore } = require('./firebase');
-const { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts } = require('./checkExpireOrder')
+const { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts } = require('./checkExpireOrder')
 
 const router = express.Router();
 const config = require('../config/config');
@@ -69,6 +69,6 @@ cron.schedule('*/10 * * * *', checkAndDeleteExpireOrders);
 cron.schedule('0 */1 * * *', checkBillContractAndUpdateContracts);
 cron.schedule('0 */1 * * *', checkAndUpdateContractsStatus);
 cron.schedule('0 */1 * * *', checkAndUpdateExpiredContracts);
-
+cron.schedule('0 */1 * * *', checkAndUpdateExpiresSoonContracts);
 
 module.exports = router;

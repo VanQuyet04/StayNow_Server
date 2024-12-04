@@ -111,4 +111,57 @@ async function checkAndUpdateExpiredContracts() {
   }
 }
 
-module.exports = { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus,checkAndUpdateExpiredContracts}
+async function checkAndUpdateExpiresSoonContracts() {
+  const contractsRef = db.collection('HopDong');
+  const currentDate = new Date(); // Ngày hiện tại
+  const threeDaysInMs = 3 * 24 * 60 * 60 * 1000; // Số mili giây trong 3 ngày
+
+  try {
+    const snapshot = await contractsRef.get();
+
+    for (const doc of snapshot.docs) {
+      const contract = doc.data();
+      const contractId = doc.id;
+
+      // Lấy ngày kết thúc và chuyển đổi thành Date object
+      const ngayKetThuc = contract.ngayKetThuc; // Giả sử 'ngayKetThuc' là string dạng 'dd/MM/yyyy'
+      const [day, month, year] = ngayKetThuc.split('/').map(Number); // Chuyển đổi định dạng
+      const endDate = new Date(year, month - 1, day);
+
+      // Tính thời gian còn lại đến ngày kết thúc
+      const diffTime = endDate - currentDate;
+
+      // Nếu còn đúng 3 ngày hoặc ít hơn nhưng trạng thái chưa là EXPIRESOON
+      if (diffTime <= threeDaysInMs && diffTime > 0 && contract.trangThai !== 'EXPIRESOON') {
+        // Cập nhật trạng thái hợp đồng
+        await contractsRef.doc(contractId).update({
+          trangThai: 'EXPIRESOON',
+        });
+
+        // Tạo thông báo mới
+        const notification = {
+          title: 'Hợp đồng sắp hết hạn!!!',
+          message: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sắp hết hạn vào ngày ${ngayKetThuc}.`,
+          time: currentDate.toTimeString().split(' ')[0], // Lấy thời gian hiện tại (giờ phút giây)
+          date: currentDate.toLocaleDateString('vi-VN'), // Lấy ngày hiện tại
+          timestamp: Date.now(), // Timestamp hiện tại
+          mapLink: '', // Bạn có thể thêm đường dẫn bản đồ nếu cần
+        };
+
+        // Gửi thông báo cho cả người thuê và chủ trọ
+        const userIds = [contract.nguoiThue.maNguoiDung, contract.chuNha.maNguoiDung];
+        for (const userId of userIds) {
+          const ref = db.ref(`ThongBao/${userId}`);
+          await ref.push(notification);
+        }
+
+        console.log(`Hợp đồng ${contractId} đã được cập nhật trạng thái thành EXPIRESOON và thông báo đã được gửi.`);
+      }
+    }
+  } catch (error) {
+    console.error('Lỗi khi kiểm tra và cập nhật trạng thái hợp đồng sắp hết hạn:', error);
+  }
+}
+
+
+module.exports = { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts }
