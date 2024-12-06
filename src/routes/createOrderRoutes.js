@@ -69,8 +69,6 @@ router.post('/create-order', async (req, res) => {
 router.post('/create-order-service', async (req, res) => {
     try {
         const { amount, billId, items, typeBill } = req.body;
-console.log("Item data:"+items);
-console.log("TypeBill:"+typeBill + amount+billId);
 
         const transID = Math.floor(Math.random() * 1000000);
 
@@ -85,7 +83,7 @@ console.log("TypeBill:"+typeBill + amount+billId);
             description: `Payment for order #${transID}`,
             embed_data: JSON.stringify({}),
             bank_code: "zalopayapp",
-            callback_url: 'https://staynow-server.onrender.com/api/callback-service',
+            callback_url: config.callback_url_service,
         };
 
         const paymentTransaction = {
