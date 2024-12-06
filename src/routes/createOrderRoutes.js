@@ -85,7 +85,7 @@ console.log("TypeBill:"+typeBill + amount+billId);
             description: `Payment for order #${transID}`,
             embed_data: JSON.stringify({}),
             bank_code: "zalopayapp",
-            callback_url: config.callback_url_service,
+            callback_url: 'https://staynow-server.onrender.com/api/callback-service',
         };
 
         const paymentTransaction = {
