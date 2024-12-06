@@ -69,6 +69,7 @@ router.post('/create-order', async (req, res) => {
 router.post('/create-order-service', async (req, res) => {
     try {
         const { amount, billId, items, typeBill } = req.body;
+console.log("Item data:"+items);
 
         const transID = Math.floor(Math.random() * 1000000);
 
@@ -103,7 +104,7 @@ router.post('/create-order-service', async (req, res) => {
         paymentTransaction.order_url = response.data.order_url
 
         // Lưu thông tin chi tiết thanh toán vào Firestore
-        await dbFirestore.collection('PaymentTransactionSerVice').doc(order.app_trans_id).set(paymentTransaction);
+        await dbFirestore.collection('PaymentTransactionService').doc(order.app_trans_id).set(paymentTransaction);
 
         res.json({
             success: true,
