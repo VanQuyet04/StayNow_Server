@@ -83,7 +83,7 @@ router.post('/create-order-service', async (req, res) => {
             description: `Payment for order #${transID}`,
             embed_data: JSON.stringify({}),
             bank_code: "zalopayapp",
-            callback_url: config.callback_url,
+            callback_url: config.callback_url_service,
         };
 
         const paymentTransaction = {

@@ -11,4 +11,5 @@ module.exports = {
     key2: process.env.KEY2,
     endpoint: process.env.URL_CREATE_ORDER,
     callback_url: process.env.CALLBACK_URL,
+    callback_url_service:process.env.CALLBACK_URL_SERVICE
 }
