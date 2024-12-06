@@ -88,7 +88,6 @@ router.post('/create-order-service', async (req, res) => {
 
         const paymentTransaction = {
             ...order,
-            contractId: contractId,
             billId: billId,
             typeBill: typeBill,
             status: 'PENDING',
