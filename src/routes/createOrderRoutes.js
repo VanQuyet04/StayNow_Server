@@ -70,6 +70,7 @@ router.post('/create-order-service', async (req, res) => {
     try {
         const { amount, billId, items, typeBill } = req.body;
 console.log("Item data:"+items);
+console.log("TypeBill:"+typeBill + amount+billId);
 
         const transID = Math.floor(Math.random() * 1000000);
 
