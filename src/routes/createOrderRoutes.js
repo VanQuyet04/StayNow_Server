@@ -5,10 +5,11 @@ const moment = require('moment');
 const cron = require('node-cron')
 
 const { dbFirestore } = require('./firebase');
-const { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts } = require('./checkExpireOrder')
+const { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts, checkAndNotifyMonthlyInvoice ,startContractMonitoring,monitorProcessingContracts} = require('./checkExpireOrder')
 
 const router = express.Router();
 const config = require('../config/config');
+const { logger } = require('firebase-functions');
 
 router.post('/create-order', async (req, res) => {
     try {
@@ -70,5 +71,21 @@ cron.schedule('0 */1 * * *', checkBillContractAndUpdateContracts);
 cron.schedule('0 */1 * * *', checkAndUpdateContractsStatus);
 cron.schedule('0 */1 * * *', checkAndUpdateExpiredContracts);
 cron.schedule('0 */1 * * *', checkAndUpdateExpiresSoonContracts);
+// Start monitoring contracts
+startContractMonitoring()
+//10s chạy 1 lần
+
+cron.schedule('*/10 * * * * *',monitorProcessingContracts);
+
+// Lịch trình chạy mỗi 10 giây
+cron.schedule('*/10 * * * * *', async () => {
+    try {
+      await checkAndNotifyMonthlyInvoice();
+      console.error(`[INFO] Đã chạy checkAndNotifyMonthlyInvoice`);
+    } catch (error) {
+      console.error(`[ERROR] Lỗi khi chạy checkAndNotifyMonthlyInvoice: ${error.message}`);
+    }
+  });
+  
 
 module.exports = router;
