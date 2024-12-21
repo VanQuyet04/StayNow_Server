@@ -522,12 +522,6 @@ function startContractMonitoring() {
   const unsubscribe = setupContractMonitoring();
   return unsubscribe;
 }
-// setInterval(checkAndNotifyMonthlyInvoice, 10 * 60 * 1000); // Chạy mỗi 10 phút
-// setInterval(checkAndNotifyMonthlyInvoice, 24 * 60 * 60 * 1000); // Chạy mỗi ngày
 
 
-
-
-
-
-// module.exports = { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts, checkAndNotifyMonthlyInvoice,startContractMonitoring,monitorProcessingContracts }
+module.exports = { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts, checkAndNotifyMonthlyInvoice,startContractMonitoring,monitorProcessingContracts }
