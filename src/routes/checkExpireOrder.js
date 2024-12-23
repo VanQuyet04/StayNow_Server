@@ -3,7 +3,7 @@ const { dbFirestore, db } = require('./firebase');
 const checkAndDeleteExpireOrders = async () => {
 
   const now = Date.now()
-  const snapshot = await dbFirestore.collection('PaymentTransaction')
+  const snapshot = await dbFirestore.collection('ThanhToanHopDong')
     .where('status', '==', 'PENDING')
     .get();
 
@@ -13,7 +13,7 @@ const checkAndDeleteExpireOrders = async () => {
 
     if (isExpired) {
       console.log(`Deleting expired order : ${doc.id}`);
-      await dbFirestore.collection('PaymentTransaction').doc(doc.id).delete();
+      await dbFirestore.collection('ThanhToanHopDong').doc(doc.id).delete();
 
     }
 
