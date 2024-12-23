@@ -33,9 +33,9 @@ router.post('/create-order', async (req, res) => {
 
         const paymentTransaction = {
             ...order,
-            contract_Id: contractId,
-            bill_Id: billId,
-            type_Bill: typeBill,
+            contract_id: contractId,
+            bill_id: billId,
+            type_bill: typeBill,
             status: 'PENDING',
             created_at: Date.now(),
         };
@@ -88,8 +88,8 @@ router.post('/create-order-service', async (req, res) => {
 
         const paymentTransaction = {
             ...order,
-            bill_Id: billId,
-            type_Bill: typeBill,
+            bill_id: billId,
+            type_bill: typeBill,
             status: 'PENDING',
             created_at: Date.now(),
         };
