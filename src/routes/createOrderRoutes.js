@@ -33,11 +33,10 @@ router.post('/create-order', async (req, res) => {
 
         const paymentTransaction = {
             ...order,
-            contractId: contractId,
-            billId: billId,
-            typeBill: typeBill,
+            contract_Id: contractId,
+            bill_Id: billId,
+            type_Bill: typeBill,
             status: 'PENDING',
-            expire_duration_seconds: order.expire_duration_seconds,
             created_at: Date.now(),
         };
 
@@ -49,7 +48,7 @@ router.post('/create-order', async (req, res) => {
         paymentTransaction.order_url = response.data.order_url
 
         // Lưu thông tin chi tiết thanh toán vào Firestore
-        await dbFirestore.collection('PaymentTransaction').doc(order.app_trans_id).set(paymentTransaction);
+        await dbFirestore.collection('ThanhToanHopDong').doc(order.app_trans_id).set(paymentTransaction);
 
         res.json({
             success: true,
@@ -89,10 +88,9 @@ router.post('/create-order-service', async (req, res) => {
 
         const paymentTransaction = {
             ...order,
-            billId: billId,
-            typeBill: typeBill,
+            bill_Id: billId,
+            type_Bill: typeBill,
             status: 'PENDING',
-            expire_duration_seconds: order.expire_duration_seconds,
             created_at: Date.now(),
         };
 
@@ -104,7 +102,7 @@ router.post('/create-order-service', async (req, res) => {
         paymentTransaction.order_url = response.data.order_url
 
         // Lưu thông tin chi tiết thanh toán vào Firestore
-        await dbFirestore.collection('PaymentTransactionService').doc(order.app_trans_id).set(paymentTransaction);
+        await dbFirestore.collection('ThanhToanDichVu').doc(order.app_trans_id).set(paymentTransaction);
 
         res.json({
             success: true,
