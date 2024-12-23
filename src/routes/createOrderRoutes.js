@@ -32,20 +32,26 @@ router.post('/create-order', async (req, res) => {
         };
 
         const paymentTransaction = {
-            ...order,
-            contract_id: contractId,
-            bill_id: billId,
-            type_bill: typeBill,
+            idThanhToan:order.app_trans_id,
+            appId:order.app_id,
+            appTransId:order.app_trans_id,
+            appTime:order.app_time,
+            amount:order.amount,
+            description:order.description,
+            expireDurationSeconds:order.expire_duration_seconds,
+            contractId: contractId,
+            billId: billId,
+            typeBill: typeBill,
             status: 'PENDING',
-            created_at: Date.now(),
+            createdAt: Date.now(),
         };
 
         const data = `${config.app_id}|${order.app_trans_id}|${order.app_user}|${order.amount}|${order.app_time}|${order.embed_data}|${order.item}`;
         order.mac = CryptoJS.HmacSHA256(data, config.key1).toString();
 
         const response = await axios.post(config.endpoint, null, { params: order });
-        paymentTransaction.zp_trans_token = response.data.zp_trans_token
-        paymentTransaction.order_url = response.data.order_url
+        paymentTransaction.zpTransToken = response.data.zp_trans_token
+        paymentTransaction.orderUrl = response.data.order_url
 
         // Lưu thông tin chi tiết thanh toán vào Firestore
         await dbFirestore.collection('ThanhToanHopDong').doc(order.app_trans_id).set(paymentTransaction);
@@ -87,19 +93,25 @@ router.post('/create-order-service', async (req, res) => {
         };
 
         const paymentTransaction = {
-            ...order,
-            bill_id: billId,
-            type_bill: typeBill,
+            idThanhToan:order.app_trans_id,
+            appId:order.app_id,
+            appTransId:order.app_trans_id,
+            appTime:order.app_time,
+            amount:order.amount,
+            description:order.description,
+            expireDurationSeconds:order.expire_duration_seconds,
+            billId: billId,
+            typeBill: typeBill,
             status: 'PENDING',
-            created_at: Date.now(),
+            createdAt: Date.now(),
         };
 
         const data = `${config.app_id}|${order.app_trans_id}|${order.app_user}|${order.amount}|${order.app_time}|${order.embed_data}|${order.item}`;
         order.mac = CryptoJS.HmacSHA256(data, config.key1).toString();
 
         const response = await axios.post(config.endpoint, null, { params: order });
-        paymentTransaction.zp_trans_token = response.data.zp_trans_token
-        paymentTransaction.order_url = response.data.order_url
+        paymentTransaction.zpTransToken = response.data.zp_trans_token
+        paymentTransaction.orderUrl = response.data.order_url
 
         // Lưu thông tin chi tiết thanh toán vào Firestore
         await dbFirestore.collection('ThanhToanDichVu').doc(order.app_trans_id).set(paymentTransaction);
