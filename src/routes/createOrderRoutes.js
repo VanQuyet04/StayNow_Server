@@ -5,7 +5,7 @@ const moment = require('moment');
 const cron = require('node-cron')
 
 const { dbFirestore } = require('./firebase');
-const { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts, checkAndNotifyMonthlyInvoice ,startContractMonitoring,monitorProcessingContracts} = require('./checkExpireOrder')
+const { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts, checkAndNotifyMonthlyInvoice, startContractMonitoring, monitorProcessingContracts } = require('./checkExpireOrder')
 
 const router = express.Router();
 const config = require('../config/config');
@@ -32,13 +32,14 @@ router.post('/create-order', async (req, res) => {
         };
 
         const paymentTransaction = {
-            idThanhToan:order.app_trans_id,
-            appId:order.app_id,
-            appTransId:order.app_trans_id,
-            appTime:order.app_time,
-            amount:order.amount,
-            description:order.description,
-            expireDurationSeconds:order.expire_duration_seconds,
+            idThanhToan: order.app_trans_id,
+            appId: order.app_id,
+            appTransId: order.app_trans_id,
+            appTime: order.app_time,
+            amount: order.amount,
+            description: order.description,
+            expireDurationSeconds: order.expire_duration_seconds,
+            bankCode: order.bank_code,
             contractId: contractId,
             billId: billId,
             typeBill: typeBill,
@@ -93,13 +94,14 @@ router.post('/create-order-service', async (req, res) => {
         };
 
         const paymentTransaction = {
-            idThanhToan:order.app_trans_id,
-            appId:order.app_id,
-            appTransId:order.app_trans_id,
-            appTime:order.app_time,
-            amount:order.amount,
-            description:order.description,
-            expireDurationSeconds:order.expire_duration_seconds,
+            idThanhToan: order.app_trans_id,
+            appId: order.app_id,
+            appTransId: order.app_trans_id,
+            appTime: order.app_time,
+            amount: order.amount,
+            description: order.description,
+            expireDurationSeconds: order.expire_duration_seconds,
+            bankCode: order.bank_code,
             billId: billId,
             typeBill: typeBill,
             status: 'PENDING',
@@ -154,6 +156,6 @@ cron.schedule('0 */1 * * *', checkAndUpdateExpiresSoonContracts);
 //       console.error(`[ERROR] Lỗi khi chạy checkAndNotifyMonthlyInvoice: ${error.message}`);
 //     }
 //   });
-  
+
 
 module.exports = router;
