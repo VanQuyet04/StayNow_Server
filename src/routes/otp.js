@@ -3,7 +3,7 @@ const { db } = require('./firebase');  // Import Firebase database
 const sendOtpEmail = require('./email')
 
 // config lock verify otp
-const MAX_OTP_ATTEMPTS = 5;
+const MAX_OTP_ATTEMPTS = 6;
 const LOCK_DURATION = 4 * 60 * 60 * 1000;
 
 const saveOtpToUserOtp = async (uid, email, otpCode, expiry) => {
@@ -94,7 +94,7 @@ const checkOtpAttempts = async (uid, otpData, otpCode) => {
     if (otpData.otpCode !== otpCode) {  // Sử dụng otpCode được truyền vào từ client
         let newAttempts = otpData.attempts + 1;
 
-        if (newAttempts > MAX_OTP_ATTEMPTS) {
+        if (newAttempts >= MAX_OTP_ATTEMPTS) {
             const lockUntil = currentTime + LOCK_DURATION;
             await db.ref(`UserOtp/${uid}`).update({
                 attempts: newAttempts,
@@ -114,7 +114,7 @@ const checkOtpAttempts = async (uid, otpData, otpCode) => {
             // OTP không chính xác
             throw {
                 code: 400,
-                message: `Bạn đã nhập sai OTP ${newAttempts} lần rồi`
+                message: `OTP chưa đúng.Bạn còn ${MAX_OTP_ATTEMPTS-newAttempts} lần thử`
             };
         }
     }
