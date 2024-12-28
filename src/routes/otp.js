@@ -114,7 +114,7 @@ const checkOtpAttempts = async (uid, otpData, otpCode) => {
             // OTP không chính xác
             throw {
                 code: 400,
-                message: `OTP không đúng.Bạn còn ${MAX_OTP_ATTEMPTS - newAttempts} lần thử.`
+                message: `Bạn đã nhập sai OTP ${newAttempts} lần rồi`
             };
         }
     }
