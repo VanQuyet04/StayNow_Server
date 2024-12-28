@@ -1,6 +1,8 @@
 // src/otp.js
 const { db } = require('./firebase');  // Import Firebase database
 const sendOtpEmail = require('./email')
+const moment = require('moment');
+require('moment/locale/vi'); 
 
 // config lock verify otp
 const MAX_OTP_ATTEMPTS = 6;
@@ -176,8 +178,8 @@ const resendOtp = async (uid) => {
 
         // Kiểm tra xem tài khoản có bị khóa hay không
         if (lockUntil && lockUntil > currentTime) {
-            const remainingLockTime = Math.ceil((lockUntil - currentTime) / 1000); // Tính thời gian còn lại 
-            throw new Error(`Tài khoản của bạn đang bị tạm khóa. Vui lòng thử lại sau ${remainingLockTime} giây.`);
+            const unlockTime = moment(lockUntil).locale('vi').format('DD/MM/YYYY, HH:mm:ss');
+            throw new Error(`Tài khoản của bạn đang bị tạm khóa. Hãy thử lại vào lúc ${unlockTime}.`);
         }
 
         // Nếu tài khoản không bị khóa hoặc thời gian khóa đã hết, tạo OTP mới
