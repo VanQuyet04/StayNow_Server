@@ -24,7 +24,7 @@ const updateOtpForUser = async (uid, otpCode, expiry) => {
     try {
         const userRef = db.ref(`UserOtp/${uid}`);
         await userRef.update({
-            otpCode, expiry, attempts: 0, 
+            otpCode, expiry, attempts: 0,
             lockUntil: 0
         });
         console.log(`OTP và thời gian hết hạn đã được cập nhật cho UID: ${uid}`);
@@ -78,15 +78,15 @@ const checkAndHandleOtp = async (uid, email) => {
     }
 };
 
-// Hàm kiểm tra số lần nhập sai và khóa tài khoản nếu quá 5 lần
 const checkOtpAttempts = async (uid, otpData, otpCode) => {
     const currentTime = Date.now();
 
     // Kiểm tra khóa tài khoản
     if (otpData.lockUntil > currentTime) {
+        // Nếu tài khoản bị khóa, trả về lỗi
         throw {
-            status: 404,  
-            message: 'Tài khoản đã bị khóa tạm thời. Vui lòng thử lại sau.'
+            code: 403,
+            message: `Bạn đã nhập sai quá ${MAX_OTP_ATTEMPTS} lần. Tài khoản đã bị khóa tạm thời.`
         };
     }
 
@@ -101,8 +101,9 @@ const checkOtpAttempts = async (uid, otpData, otpCode) => {
                 lockUntil: lockUntil
             });
 
+            // Tài khoản bị khóa
             throw {
-                status: 403,  
+                code: 403,
                 message: `Bạn đã nhập sai quá ${MAX_OTP_ATTEMPTS} lần. Tài khoản đã bị khóa tạm thời.`
             };
         } else {
@@ -110,8 +111,9 @@ const checkOtpAttempts = async (uid, otpData, otpCode) => {
                 attempts: newAttempts
             });
 
+            // OTP không chính xác
             throw {
-                status: 400, 
+                code: 400,
                 message: `OTP không đúng. Bạn còn ${MAX_OTP_ATTEMPTS - newAttempts} lần thử.`
             };
         }

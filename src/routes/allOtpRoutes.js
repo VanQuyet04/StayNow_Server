@@ -41,17 +41,35 @@ router.post('/verify-token', async (req, res) => {
 router.post('/verify-otp', async (req, res) => {
     const { uid, otpCode } = req.body;
 
+    // Kiểm tra nếu thiếu uid hoặc otpCode
     if (!uid || !otpCode) {
         return res.status(400).json({ error: 'Thiếu UID hoặc OTP' });
     }
 
     try {
         const result = await verifyOtpFromRealTime(uid, otpCode);
-        res.json({ message: 'OTP xác thực thành công!', uid, verified: result });
+        
+        res.json({
+            message: 'OTP xác thực thành công!',
+            uid,
+            verified: result
+        });
     } catch (error) {
-        res.status(400).json({ error: 'Xác thực OTP thất bại', details: error.message });
+     
+        if (error.code && error.message) {
+            res.status(error.code).json({
+                error: error.message,  // Trả về message chi tiết từ lỗi
+                details: error.details || 'Lỗi không xác định'
+            });
+        } else {
+            res.status(400).json({
+                error: 'Xác thực OTP thất bại',
+                details: error.message || 'Lỗi không xác định'
+            });
+        }
     }
 });
+
 
 router.post('/resend-otp', async (req, res) => {
     const { uid } = req.body;
