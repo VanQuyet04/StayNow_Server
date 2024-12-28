@@ -24,6 +24,50 @@ const updateOtpForUser = async (uid, otpCode, expiry) => {
         throw new Error('Lỗi cập nhật OTP');
     }
 };
+const checkAndHandleOtp = async (uid, email) => {
+    try {
+        const userOtpRef = db.ref(`UserOtp/${uid}`);
+        const snapshot = await userOtpRef.get();
+        
+        const otpCode = Math.floor(100000 + Math.random() * 900000);
+        const otpExpiry = Date.now() + 10 * 60 * 1000;
+
+        // Trường hợp 1: Không tìm thấy bản ghi
+        if (!snapshot.exists()) {
+            await saveOtpToUserOtp(uid, email, otpCode, otpExpiry);
+            await sendOtpEmail(email, otpCode);
+            return {
+                status: 'created',
+                message: 'Đã tạo và gửi OTP mới',
+                otpExpiry
+            };
+        }
+
+        const currentOtpData = snapshot.val();
+        
+        // Trường hợp 2: Tìm thấy nhưng đã hết hạn
+        if (Date.now() > currentOtpData.expiry) {
+            await updateOtpForUser(uid, otpCode, otpExpiry);
+            await sendOtpEmail(email, otpCode);
+            return {
+                status: 'updated',
+                message: 'OTP cũ đã hết hạn, đã cập nhật và gửi OTP mới',
+                otpExpiry
+            };
+        }
+
+        // Trường hợp 3: OTP vẫn còn hiệu lực
+        return {
+            status: 'existing',
+            message: 'OTP hiện tại vẫn còn hiệu lực',
+            otpExpiry: currentOtpData.expiry
+        };
+
+    } catch (error) {
+        console.error('Lỗi trong quá trình kiểm tra và xử lý OTP:', error.message);
+        throw new Error(error.message);
+    }
+};
 
 // Kiểm tra OTP từ Realtime Database
 const verifyOtpFromRealTime = async (uid, otpCode) => {
@@ -88,4 +132,6 @@ const resendOtp = async (uid) => {
     }
 };
 
-module.exports = { saveOtpToUserOtp, verifyOtpFromRealTime, resendOtp };
+
+
+module.exports = { saveOtpToUserOtp, verifyOtpFromRealTime, resendOtp,checkAndHandleOtp };

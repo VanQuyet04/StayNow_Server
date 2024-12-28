@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const db = require('./firebase')
 const bodyParser = require('body-parser');
 // Import các module
 const verifyToken = require('../routes/verifyToken');
@@ -26,40 +25,14 @@ router.post('/verify-token', async (req, res) => {
         console.log("Email xác thực:", userEmail);
         console.log("UID xác thực:", userUid);
 
-        // Kiểm tra bản ghi hiện tại trong UserOtp
-        const userOtpRef = db.ref(`UserOtp/${userUid}`);
-        const snapshot = await userOtpRef.get();
-        const otpCode = Math.floor(100000 + Math.random() * 900000);
-        const otpExpiry = Date.now() + 10 * 60 * 1000;
-
-        if (snapshot.exists) {
-            const currentOtpData = snapshot.val();
-            // Nếu OTP cũ đã hết hạn hoặc sắp hết hạn
-            if (Date.now() > currentOtpData.expiry) {
-                // Update OTP mới
-                await updateOtpForUser(userUid, otpCode, otpExpiry);
-            } else {
-                // OTP vẫn còn hiệu lực, trả về thông báo
-                return res.json({
-                    message: 'OTP hiện tại vẫn còn hiệu lực',
-                    uid: userUid,
-                    email: userEmail,
-                    otpExpiry: new Date(currentOtpData.expiry).toISOString()
-                });
-            }
-        } else {
-            // Tạo mới nếu chưa có bản ghi
-            await saveOtpToUserOtp(userUid, userEmail, otpCode, otpExpiry);
-        }
-
-        const emailResult = await sendOtpEmail(userEmail, otpCode);
+        const result = await checkAndHandleOtp(userUid, userEmail);
 
         res.json({
-            message: 'Token hợp lệ, OTP đã được gửi và lưu vào bảng userOtp!',
+            message: result.message,
             uid: userUid,
             email: userEmail,
-            otpExpiry: new Date(otpExpiry).toISOString(),
-            emailResult
+            otpExpiry: new Date(result.otpExpiry).toISOString(),
+            status: result.status
         });
     } catch (error) {
         res.status(401).json({ error: 'Token không hợp lệ', details: error.message });
