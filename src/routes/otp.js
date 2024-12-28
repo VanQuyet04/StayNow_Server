@@ -162,7 +162,6 @@ const verifyOtpFromRealTime = async (uid, otpCode) => {
 
 const resendOtp = async (uid) => {
     try {
-        // Lấy thông tin người dùng từ Firebase (đảm bảo rằng bạn có thông tin email của user)
         const userRef = db.ref(`UserOtp/${uid}`);
         const userSnapshot = await userRef.get();
 
@@ -170,14 +169,27 @@ const resendOtp = async (uid) => {
             throw new Error('Không tìm thấy người dùng với UID này');
         }
 
-        const userEmail = userSnapshot.val().email;
+        const userData = userSnapshot.val();
+        const { email: userEmail, lockUntil } = userData;
 
-        // Tạo OTP mới ngẫu nhiên và thời gian hết hạn (10 phút)
+        const currentTime = Date.now();
+
+        // Kiểm tra xem tài khoản có bị khóa hay không
+        if (lockUntil && lockUntil > currentTime) {
+            const remainingLockTime = Math.ceil((lockUntil - currentTime) / 1000); // Tính thời gian còn lại 
+            throw new Error(`Tài khoản của bạn đang bị tạm khóa. Vui lòng thử lại sau ${remainingLockTime} giây.`);
+        }
+
+        // Nếu tài khoản không bị khóa hoặc thời gian khóa đã hết, tạo OTP mới
         const otpCode = Math.floor(100000 + Math.random() * 900000);
-        const otpExpiry = Date.now() + 10 * 60 * 1000; // Thời gian hết hạn: 10 phút
+        const otpExpiry = currentTime + 10 * 60 * 1000; 
 
-        // Lưu OTP vào bảng UserOtp
-        await updateOtpForUser(uid, otpCode, otpExpiry);
+        await userRef.update({
+            otpCode,
+            otpExpiry,
+            attempts: 0, 
+            lockUntil: 0, 
+        });
 
         // Gửi OTP mới qua email
         await sendOtpEmail(userEmail, otpCode);
