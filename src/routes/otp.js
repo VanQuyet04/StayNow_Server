@@ -89,30 +89,8 @@ const verifyOtpFromRealTime = async (uid, otpCode) => {
         }
 
         const otpData = snapshot.val();
-
-        // Kiểm tra xem user có đang bị khóa không
-        if (otpData.lockUntil && otpData.lockUntil > Date.now()) {
-            const remainingTime = Math.ceil((otpData.lockUntil - Date.now()) / (60 * 1000)); // Còn lại bao nhiêu phút
-            throw new Error(`Tài khoản tạm thời bị khóa. Vui lòng thử lại sau ${remainingTime} phút`);
-        }
-
-        // Kiểm tra OTP có đúng không
         if (otpData.otpCode !== otpCode) {
-            // Tăng số lần thử
-            const attempts = (otpData.attempts || 0) + 1;
-            
-            // Nếu vượt quá số lần cho phép
-            if (attempts >= MAX_OTP_ATTEMPTS) {
-                await userOtpRef.update({
-                    attempts: 0,  // Reset attempts
-                    lockUntil: Date.now() + LOCK_DURATION // Khóa 4 giờ
-                });
-                throw new Error(`Bạn đã nhập sai OTP quá ${MAX_OTP_ATTEMPTS} lần. Tài khoản bị tạm khóa trong 4 giờ`);
-            }
-
-            // Cập nhật số lần thử
-            await userOtpRef.update({ attempts });
-            throw new Error(`OTP không chính xác. Còn ${MAX_OTP_ATTEMPTS - attempts} lần thử`);
+            throw new Error('OTP không chính xác');
         }
 
         if (Date.now() > otpData.expiry) {
@@ -121,7 +99,6 @@ const verifyOtpFromRealTime = async (uid, otpCode) => {
 
         await userOtpRef.remove();  // Xóa OTP sau khi xác thực thành công
         console.log('OTP đã được xác thực và xóa khỏi Realtime Database.');
-        
         // Cập nhật trường daXacThuc trong bảng NguoiDung
         const userRef = db.ref(`NguoiDung/${uid}`);
         await userRef.update({ daXacThuc: true });
@@ -131,6 +108,7 @@ const verifyOtpFromRealTime = async (uid, otpCode) => {
         throw new Error(error.message);
     }
 };
+
 
 const resendOtp = async (uid) => {
     try {
