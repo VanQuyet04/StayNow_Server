@@ -1,12 +1,11 @@
 require('dotenv').config();
 const express = require('express');
+const db = require('./firebase')
 const bodyParser = require('body-parser');
 // Import các module
 const verifyToken = require('../routes/verifyToken');
 const { saveOtpToUserOtp, verifyOtpFromRealTime, resendOtp } = require('../routes/otp');
 const sendOtpEmail = require('../routes/email');
-const { dbFirestore, db } = require('./firebase');
-
 const router = express.Router()
 
 router.post('/verify-token', async (req, res) => {
@@ -27,42 +26,32 @@ router.post('/verify-token', async (req, res) => {
         console.log("Email xác thực:", userEmail);
         console.log("UID xác thực:", userUid);
 
-        // Kiểm tra OTP trong Realtime Database
-        const userRef = db.ref(`UserOtp/${userUid}`);
-        const snapshot = await userRef.get();
-
-        if (snapshot.exists) {
-            const otpData = snapshot.val();
-
-            // Nếu OTP chưa hết hạn
-            if (Date.now() < otpData.expiry) {
-                return res.status(200).json({
-                    message: 'OTP hiện tại vẫn còn hiệu lực.',
-                    otpExpiry: new Date(otpData.expiry).toISOString()
-                });
-            }
-
-            // Nếu OTP đã hết hạn, cập nhật OTP mới
-            const otpCode = Math.floor(100000 + Math.random() * 900000);
-            const otpExpiry = Date.now() + 10 * 60 * 1000;
-
-            await updateOtpForUser(userUid, otpCode, otpExpiry);
-            const emailResult = await sendOtpEmail(userEmail, otpCode);
-
-            return res.json({
-                message: 'OTP đã hết hạn, OTP mới đã được gửi và lưu vào bảng userOtp!',
-                uid: userUid,
-                email: userEmail,
-                otpExpiry: new Date(otpExpiry).toISOString(),
-                emailResult
-            });
-        }
-
-        // Nếu OTP chưa tồn tại
+        // Kiểm tra bản ghi hiện tại trong UserOtp
+        const userOtpRef = db.ref(`UserOtp/${userUid}`);
+        const snapshot = await userOtpRef.get();
         const otpCode = Math.floor(100000 + Math.random() * 900000);
         const otpExpiry = Date.now() + 10 * 60 * 1000;
 
-        await saveOtpToUserOtp(userUid, userEmail, otpCode, otpExpiry);
+        if (snapshot.exists) {
+            const currentOtpData = snapshot.val();
+            // Nếu OTP cũ đã hết hạn hoặc sắp hết hạn
+            if (Date.now() > currentOtpData.expiry) {
+                // Update OTP mới
+                await updateOtpForUser(userUid, otpCode, otpExpiry);
+            } else {
+                // OTP vẫn còn hiệu lực, trả về thông báo
+                return res.json({
+                    message: 'OTP hiện tại vẫn còn hiệu lực',
+                    uid: userUid,
+                    email: userEmail,
+                    otpExpiry: new Date(currentOtpData.expiry).toISOString()
+                });
+            }
+        } else {
+            // Tạo mới nếu chưa có bản ghi
+            await saveOtpToUserOtp(userUid, userEmail, otpCode, otpExpiry);
+        }
+
         const emailResult = await sendOtpEmail(userEmail, otpCode);
 
         res.json({
