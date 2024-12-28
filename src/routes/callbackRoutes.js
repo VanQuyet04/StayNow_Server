@@ -31,11 +31,11 @@ router.post('/callback', async (req, res) => {
         // Nếu MAC hợp lệ, xử lý dữ liệu
         const dataJson = JSON.parse(dataStr); // Giải mã dữ liệu
         console.log("Thông tin thanh toán:", dataJson);
-        const app_trans_id = dataJson.app_trans_id.toString()
+        const appTransId = dataJson.app_trans_id.toString()
 
         //Tìm hóa đơn gốc từ transactionId
-        const paymentTransRef = await dbFirestore.collection('PaymentTransaction')
-            .doc(app_trans_id)
+        const paymentTransRef = await dbFirestore.collection('ThanhToanHopDong')
+            .doc(appTransId)
             .get();
 
         if (!paymentTransRef.exists) {

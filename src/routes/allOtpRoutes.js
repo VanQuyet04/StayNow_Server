@@ -30,7 +30,7 @@ router.post('/verify-token', async (req, res) => {
         const userRef = db.ref(`UserOtp/${userUid}`);
         const snapshot = await userRef.get();
 
-        if (snapshot.exists()) {
+        if (snapshot.exists) {
             const otpData = snapshot.val();
 
             // Nếu OTP chưa hết hạn
