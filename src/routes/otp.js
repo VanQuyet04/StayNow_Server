@@ -86,7 +86,7 @@ const checkOtpAttempts = async (uid, otpData, otpCode) => {
         // Nếu tài khoản bị khóa, trả về lỗi
         throw {
             code: 403,
-            message: `Bạn đã nhập sai quá ${MAX_OTP_ATTEMPTS} lần. Tài khoản đã bị khóa tạm thời.`
+            message: `Bạn đã nhập sai quá ${MAX_OTP_ATTEMPTS-1} lần. Tài khoản đã bị khóa tạm thời.`
         };
     }
 
