@@ -78,7 +78,50 @@ const checkAndHandleOtp = async (uid, email) => {
     }
 };
 
-// Kiểm tra OTP từ Realtime Database
+// Hàm kiểm tra số lần nhập sai và khóa tài khoản nếu quá 5 lần
+const checkOtpAttempts = async (uid, otpData, otpCode) => {
+    const currentTime = Date.now();
+
+    // Kiểm tra khóa tài khoản
+    if (otpData.lockUntil > currentTime) {
+        throw {
+            status: 404,  
+            message: 'Tài khoản đã bị khóa tạm thời. Vui lòng thử lại sau.'
+        };
+    }
+
+    // Kiểm tra OTP nhập vào có chính xác không
+    if (otpData.otpCode !== otpCode) {  // Sử dụng otpCode được truyền vào từ client
+        let newAttempts = otpData.attempts + 1;
+
+        if (newAttempts >= MAX_OTP_ATTEMPTS) {
+            const lockUntil = currentTime + LOCK_DURATION;
+            await db.ref(`UserOtp/${uid}`).update({
+                attempts: newAttempts,
+                lockUntil: lockUntil
+            });
+
+            throw {
+                status: 403,  
+                message: `Bạn đã nhập sai quá ${MAX_OTP_ATTEMPTS} lần. Tài khoản đã bị khóa tạm thời.`
+            };
+        } else {
+            await db.ref(`UserOtp/${uid}`).update({
+                attempts: newAttempts
+            });
+
+            throw {
+                status: 400, 
+                message: `OTP không đúng. Bạn còn ${MAX_OTP_ATTEMPTS - newAttempts} lần thử.`
+            };
+        }
+    }
+
+    return otpData;
+};
+
+
+//xác thực otp
 const verifyOtpFromRealTime = async (uid, otpCode) => {
     try {
         const userOtpRef = db.ref(`UserOtp/${uid}`);
@@ -89,19 +132,25 @@ const verifyOtpFromRealTime = async (uid, otpCode) => {
         }
 
         const otpData = snapshot.val();
-        if (otpData.otpCode !== otpCode) {
-            throw new Error('OTP không chính xác');
-        }
 
-        if (Date.now() > otpData.expiry) {
+        // Gọi hàm kiểm tra số lần nhập sai và khóa tài khoản
+        await checkOtpAttempts(uid, otpData, otpCode);
+
+        const currentTime = Date.now();
+
+        // Kiểm tra OTP đã hết hạn chưa
+        if (currentTime > otpData.expiry) {
             throw new Error('OTP đã hết hạn');
         }
 
-        await userOtpRef.remove();  // Xóa OTP sau khi xác thực thành công
+        // Nếu OTP đúng và chưa hết hạn, xóa OTP và cập nhật trạng thái
+        await userOtpRef.remove();
         console.log('OTP đã được xác thực và xóa khỏi Realtime Database.');
+
         // Cập nhật trường daXacThuc trong bảng NguoiDung
         const userRef = db.ref(`NguoiDung/${uid}`);
         await userRef.update({ daXacThuc: true });
+
         return true;
     } catch (error) {
         console.error('Lỗi xác thực OTP từ Realtime Database:', error.message);
