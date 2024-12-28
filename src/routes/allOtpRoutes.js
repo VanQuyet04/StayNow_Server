@@ -3,8 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 // Import các module
 const verifyToken = require('../routes/verifyToken');
-const { saveOtpToUserOtp, verifyOtpFromRealTime, resendOtp } = require('../routes/otp');
-const sendOtpEmail = require('../routes/email');
+const {verifyOtpFromRealTime, resendOtp,checkAndHandleOtp } = require('../routes/otp');
 const router = express.Router()
 
 router.post('/verify-token', async (req, res) => {
