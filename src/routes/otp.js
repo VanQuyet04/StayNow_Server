@@ -94,7 +94,7 @@ const checkOtpAttempts = async (uid, otpData, otpCode) => {
     if (otpData.otpCode !== otpCode) {  // Sử dụng otpCode được truyền vào từ client
         let newAttempts = otpData.attempts + 1;
 
-        if (newAttempts >= MAX_OTP_ATTEMPTS) {
+        if (newAttempts > MAX_OTP_ATTEMPTS) {
             const lockUntil = currentTime + LOCK_DURATION;
             await db.ref(`UserOtp/${uid}`).update({
                 attempts: newAttempts,
