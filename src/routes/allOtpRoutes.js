@@ -26,6 +26,38 @@ router.post('/verify-token', async (req, res) => {
         console.log("Email xác thực:", userEmail);
         console.log("UID xác thực:", userUid);
 
+        // Kiểm tra OTP trong Realtime Database
+        const userRef = db.ref(`UserOtp/${userUid}`);
+        const snapshot = await userRef.get();
+
+        if (snapshot.exists()) {
+            const otpData = snapshot.val();
+
+            // Nếu OTP chưa hết hạn
+            if (Date.now() < otpData.expiry) {
+                return res.status(200).json({
+                    message: 'OTP hiện tại vẫn còn hiệu lực.',
+                    otpExpiry: new Date(otpData.expiry).toISOString()
+                });
+            }
+
+            // Nếu OTP đã hết hạn, cập nhật OTP mới
+            const otpCode = Math.floor(100000 + Math.random() * 900000);
+            const otpExpiry = Date.now() + 10 * 60 * 1000;
+
+            await updateOtpForUser(userUid, otpCode, otpExpiry);
+            const emailResult = await sendOtpEmail(userEmail, otpCode);
+
+            return res.json({
+                message: 'OTP đã hết hạn, OTP mới đã được gửi và lưu vào bảng userOtp!',
+                uid: userUid,
+                email: userEmail,
+                otpExpiry: new Date(otpExpiry).toISOString(),
+                emailResult
+            });
+        }
+
+        // Nếu OTP chưa tồn tại
         const otpCode = Math.floor(100000 + Math.random() * 900000);
         const otpExpiry = Date.now() + 10 * 60 * 1000;
 

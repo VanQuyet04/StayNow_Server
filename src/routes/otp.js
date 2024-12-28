@@ -55,6 +55,8 @@ const verifyOtpFromRealTime = async (uid, otpCode) => {
         throw new Error(error.message);
     }
 };
+
+
 const resendOtp = async (uid) => {
     try {
         // Lấy thông tin người dùng từ Firebase (đảm bảo rằng bạn có thông tin email của user)
