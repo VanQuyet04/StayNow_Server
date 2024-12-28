@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const verifyToken = require('../routes/verifyToken');
 const { saveOtpToUserOtp, verifyOtpFromRealTime, resendOtp } = require('../routes/otp');
 const sendOtpEmail = require('../routes/email');
+const { dbFirestore, db } = require('./firebase');
 
 const router = express.Router()
 
