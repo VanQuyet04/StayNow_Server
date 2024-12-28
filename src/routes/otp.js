@@ -85,50 +85,84 @@ const verifyOtpFromRealTime = async (uid, otpCode) => {
         const snapshot = await userOtpRef.get();
 
         if (!snapshot.exists()) {
-            throw new Error('Không tìm thấy OTP cho UID này');
+            return {
+                success: false,
+                code: 'NOT_FOUND',
+                message: 'Không tìm thấy OTP cho UID này'
+            };
         }
 
         const otpData = snapshot.val();
 
-        // Kiểm tra xem user có đang bị khóa không
+        // Kiểm tra khóa tài khoản
         if (otpData.lockUntil && otpData.lockUntil > Date.now()) {
-            const remainingTime = Math.ceil((otpData.lockUntil - Date.now()) / (60 * 1000)); // Còn lại bao nhiêu phút
-            throw new Error(`Tài khoản tạm thời bị khóa. Vui lòng thử lại sau ${remainingTime} phút`);
+            const remainingTime = Math.ceil((otpData.lockUntil - Date.now()) / (60 * 1000));
+            return {
+                success: false,
+                code: 'ACCOUNT_LOCKED',
+                message: 'Tài khoản đang bị tạm khóa',
+                remainingTime,
+                lockUntil: otpData.lockUntil
+            };
         }
 
-        // Kiểm tra OTP có đúng không
+        // Kiểm tra OTP hết hạn
+        if (Date.now() > otpData.expiry) {
+            return {
+                success: false,
+                code: 'OTP_EXPIRED',
+                message: 'OTP đã hết hạn'
+            };
+        }
+
+        // Kiểm tra OTP
         if (otpData.otpCode !== otpCode) {
-            // Tăng số lần thử
             const attempts = (otpData.attempts || 0) + 1;
             
-            // Nếu vượt quá số lần cho phép
+            // Vượt quá số lần cho phép
             if (attempts >= MAX_OTP_ATTEMPTS) {
+                const lockUntil = Date.now() + LOCK_DURATION;
                 await userOtpRef.update({
-                    attempts: 0,  // Reset attempts
-                    lockUntil: Date.now() + LOCK_DURATION // Khóa 4 giờ
+                    attempts: 0,
+                    lockUntil
                 });
-                throw new Error(`Bạn đã nhập sai OTP quá ${MAX_OTP_ATTEMPTS} lần. Tài khoản bị tạm khóa trong 4 giờ`);
+                return {
+                    success: false,
+                    code: 'MAX_ATTEMPTS',
+                    message: 'Tài khoản bị tạm khóa do nhập sai OTP quá nhiều lần',
+                    lockDuration: LOCK_DURATION / (60 * 1000) // Số phút bị khóa
+                };
             }
 
-            // Cập nhật số lần thử
+            // Cập nhật số lần thử vào Firebase
             await userOtpRef.update({ attempts });
-            throw new Error(`OTP không chính xác. Còn ${MAX_OTP_ATTEMPTS - attempts} lần thử`);
+            return {
+                success: false,
+                code: 'INVALID_OTP',
+                message: 'OTP không chính xác',
+                remainingAttempts: MAX_OTP_ATTEMPTS - attempts,
+                attempts
+            };
         }
 
-        if (Date.now() > otpData.expiry) {
-            throw new Error('OTP đã hết hạn');
-        }
-
-        await userOtpRef.remove();  // Xóa OTP sau khi xác thực thành công
-        console.log('OTP đã được xác thực và xóa khỏi Realtime Database.');
-        
-        // Cập nhật trường daXacThuc trong bảng NguoiDung
+        // Xác thực thành công
+        await userOtpRef.remove();
         const userRef = db.ref(`NguoiDung/${uid}`);
         await userRef.update({ daXacThuc: true });
-        return true;
+        
+        return {
+            success: true,
+            code: 'SUCCESS',
+            message: 'Xác thực OTP thành công'
+        };
+
     } catch (error) {
-        console.error('Lỗi xác thực OTP từ Realtime Database:', error.message);
-        throw new Error(error.message);
+        console.error('Lỗi xác thực OTP:', error);
+        return {
+            success: false,
+            code: 'SYSTEM_ERROR',
+            message: 'Đã có lỗi xảy ra, vui lòng thử lại sau'
+        };
     }
 };
 
