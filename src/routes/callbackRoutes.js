@@ -65,6 +65,7 @@ router.post('/callback', async (req, res) => {
                                     trangThai: 'PAID',
                                     paymentDate: dataJson.server_time.toString(),
                                 },
+                                trangThai:'PROCESSING',
                                 updatedAt: new Date(),
                             },
                             { merge: true }
