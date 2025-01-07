@@ -65,7 +65,7 @@ router.post('/callback', async (req, res) => {
                                     trangThai: 'PAID',
                                     paymentDate: dataJson.server_time.toString(),
                                 },
-                                trangThai:'PROCESSING',
+                                trangThai: 'PROCESSING',
                                 updatedAt: new Date(),
                             },
                             { merge: true }
@@ -163,12 +163,33 @@ router.post('/callback-service', async (req, res) => {
                     updatedAt: new Date()
                 }, { merge: true });
 
-                console.log("Cập nhật hoặc thêm mới thành công!");
+                // Lấy thông tin hóa đơn để kiểm tra kieuHoaDon
+                const billSnapshot = await billRef.get();
+
+                if (billSnapshot.exists) {
+                    const billData = billSnapshot.data();
+
+                    // Kiểm tra nếu kieuHoaDon là "HoaDonChamDut"
+                    if (billData.kieuHoaDon == "HoaDonChamDut") {
+                        const contractRef = dbFirestore.collection('HopDong').doc(billData.contractId);
+
+                        // Cập nhật trạng thái hợp đồng thành "TERMINATED"
+                        await contractRef.set({
+                            trangThai: 'TERMINATED',
+                            updatedAt: new Date()
+                        }, { merge: true });
+
+                        console.log("Cập nhật trạng thái hợp đồng thành TERMINATED thành công!");
+                    }
+                } else {
+                    console.log("Không tìm thấy hóa đơn với ID: ", originalTrans.billId);
+                }
+
             } catch (error) {
                 console.error("Lỗi khi cập nhật hoặc thêm mới: ", error);
             }
         }
-        
+
         //Tạo đối tượng lưu thông tin thanh toán từ callback
         const paymentTransaction = {
             zpTransId: dataJson.zp_trans_id,
@@ -177,7 +198,7 @@ router.post('/callback-service', async (req, res) => {
             merchantUserId: dataJson.merchant_user_id,
             zpUserId: dataJson.zp_user_id,
             status: 'PAID',
-            paymentDate:dataJson.server_time.toString(),
+            paymentDate: dataJson.server_time.toString(),
             updateAt: new Date()
         }
 
