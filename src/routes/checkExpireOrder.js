@@ -1,7 +1,8 @@
 const { log } = require('firebase-functions/logger');
 const { dbFirestore, db } = require('./firebase');
-const checkAndDeleteExpireOrders = async () => {
 
+// kiểm tra và xóa hóa đơn thanh toán hợp đồng quá hạn 
+async function checkAndDeleteExpireOrders() {
   const now = Date.now()
   const snapshot = await dbFirestore.collection('ThanhToanHopDong')
     .where('status', '==', 'PENDING')
@@ -60,7 +61,7 @@ async function checkBillContractAndUpdateContracts() {
 async function checkAndUpdateContractsStatus() {
   const contractsRef = db.collection('HopDong');
 
-  const snapshot = await contractsRef.where('hoaDonHopDong.trangThai', 'in', ['EXPIRED', 'TERMINATED']).get();
+  const snapshot = await contractsRef.where('hoaDonHopDong.trangThai', 'in', ['EXPIRED', 'TERMINATED', 'CANCELLED']).get();
 
   // Dùng vòng lặp for...of để hỗ trợ async/await
   for (const doc of snapshot.docs) {
@@ -69,7 +70,7 @@ async function checkAndUpdateContractsStatus() {
     const maPhong = contract.maPhong;
 
     // Kiểm tra và cập nhật trạng thái của hợp đồng trong HopDong
-    if (contract.hoaDonHopDong.trangThai === 'EXPIRED' || contract.hoaDonHopDong.trangThai === 'CANCELLED') {
+    if (contract.hoaDonHopDong.trangThai === 'EXPIRED' || contract.hoaDonHopDong.trangThai === 'CANCELLED' || contract.hoaDonHopDong.trangThai === 'TERMINATED') {
 
       // Cập nhật trạng thái của phòng (PhongTro) thành false
       const roomRef = db.collection('PhongTro').doc(maPhong);
@@ -81,7 +82,7 @@ async function checkAndUpdateContractsStatus() {
   }
 }
 
-// kiểm tra nếu quá hạn hợp đồng thì tự chuyển đổi trạng thái qua EXPIRE
+// kiểm tra nếu quá hạn hợp đồng thì tự chuyển đổi trạng thái qua EXPIRED
 async function checkAndUpdateExpiredContracts() {
   const contractsRef = db.collection('HopDong');
   const currentDate = new Date(); // Lấy ngày hiện tại
@@ -111,6 +112,7 @@ async function checkAndUpdateExpiredContracts() {
   }
 }
 
+//kiểm tra nếu hợp đồng sắp quá hạn thì thông báo đến cho người dùng
 async function checkAndUpdateExpiresSoonContracts() {
   log('Checking and updating contracts that are about to expire...');
   const contractsRef = db.collection('HopDong');
@@ -132,21 +134,16 @@ async function checkAndUpdateExpiresSoonContracts() {
       // Tính thời gian còn lại đến ngày kết thúc
       const diffTime = endDate - currentDate;
 
-      // Nếu còn đúng 3 ngày hoặc ít hơn nhưng trạng thái chưa là EXPIRESOON
-      if (diffTime <= threeDaysInMs && diffTime > 0 && contract.trangThai !== 'EXPIRESOON') {
-        // Cập nhật trạng thái hợp đồng
-        await contractsRef.doc(contractId).update({
-          trangThai: 'EXPIRESOON',
-        });
+      // Nếu còn đúng 3 ngày hoặc ít hơn
+      if (diffTime <= threeDaysInMs && diffTime > 0) {
 
         // Tạo thông báo mới
         const notification = {
-          title: 'Hợp đồng sắp hết hạn!!!',
-          message: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sắp hết hạn vào ngày ${ngayKetThuc}.`,
-          time: currentDate.toTimeString().split(' ')[0], // Lấy thời gian hiện tại (giờ phút giây)
-          date: currentDate.toLocaleDateString('vi-VN'), // Lấy ngày hiện tại
-          timestamp: Date.now(), // Timestamp hiện tại
-          mapLink: '', // Bạn có thể thêm đường dẫn bản đồ nếu cần
+          tieuDe: 'Hợp đồng sắp hết hạn!!!',
+          tinNhan: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sắp hết hạn vào ngày ${ngayKetThuc}.`,
+          thoiGian: currentDate.toTimeString().split(' ')[0], // Lấy thời gian hiện tại (giờ phút giây)
+          ngayGuiThongBao: currentDate.toLocaleDateString('vi-VN'), // Lấy ngày hiện tại
+          thoiGianGuiThongBao: Date.now(), // Timestamp hiện tại
         };
 
         // Gửi thông báo cho cả người thuê và chủ trọ
@@ -156,7 +153,7 @@ async function checkAndUpdateExpiresSoonContracts() {
           await ref.push(notification);
         }
 
-        console.log(`Hợp đồng ${contractId} đã được cập nhật trạng thái thành EXPIRESOON và thông báo đã được gửi.`);
+        console.log(`Hợp đồng ${contractId} đã sắp đến hạn rồi, bạn chú ý nhé`);
 
       }
     }
@@ -164,11 +161,6 @@ async function checkAndUpdateExpiresSoonContracts() {
     console.error('Lỗi khi kiểm tra và cập nhật trạng thái hợp đồng sắp hết hạn:', error);
   }
 }
-
-
-
-
-
 
 
 // hàm kiểm tra và gửi thông báo hóa đơn hàng tháng
@@ -191,12 +183,12 @@ const checkAndNotifyMonthlyInvoice = async () => {
       console.log(`[DEBUG] Đang kiểm tra hợp đồng ${contractId}`);
 
       // Hàm để chuyển đổi Date thành định dạng dd/mm/yyyy
-function formatDate(date) {
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0'); // Tháng tính từ 0, nên phải cộng thêm 1
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-}
+      function formatDate(date) {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // Tháng tính từ 0, nên phải cộng thêm 1
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      }
 
       const [startDay, startMonth, startYear] = contract.ngayBatDau.split('/').map(Number);
       const [endDay, endMonth, endYear] = contract.ngayKetThuc.split('/').map(Number);
@@ -233,10 +225,10 @@ function formatDate(date) {
         currentDate.toDateString() === ngayKetThuc.toDateString()
       ) {
         const notification = {
-          title: 'Tạo hóa đơn tháng cuối cùng',
-          message: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sẽ kết thúc vào ngày ${contract.ngayKetThuc}. Vui lòng tạo hóa đơn.`,
-          contractId: contractId,
-          timestamp: Date.now(),
+          tieuDe: 'Tạo hóa đơn tháng cuối cùng',
+          tinNhan: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sẽ kết thúc vào ngày ${contract.ngayKetThuc}. Vui lòng tạo hóa đơn.`,
+          idModel: contractId,
+          thoiGianGuiThongBao: Date.now(),
         };
 
         const ref = db.ref(`ThongBao/${contract.maNguoiDung}`);
@@ -258,16 +250,16 @@ function formatDate(date) {
         currentDate >= firstInvoiceDate &&
         currentDate < ngayKetThuc
 
-        
+
       ) {
         const notification = {
-          title: 'Tạo hóa đơn hàng tháng',
-          message: `Hóa đơn tháng mới cho phòng ${contract.thongtinphong.tenPhong} cần được tạo.`,
-          typeNotification: `invoiceCreation`, 
-          timestamp: Date.now(),
+          tieuDe: 'Tạo hóa đơn hàng tháng',
+          tinNhan: `Hóa đơn tháng mới cho phòng ${contract.thongtinphong.tenPhong} cần được tạo.`,
+          loaiThongBao: `invoiceCreation`,
+          thoiGianGuiThongBao: Date.now(),
           idModel: contractId
         };
-      
+
         const ref = db.ref(`ThongBao/${contract.chuNha.maNguoiDung}`);
         await ref.push(notification);
 
@@ -299,9 +291,9 @@ function setupContractMonitoring() {
           .filter(change => {
             const docData = change.doc.data();
             return (
-              (change.type === 'added' || change.type === 'modified') && 
-              docData.hoaDonHopDong && 
-              docData.hoaDonHopDong.trangThai === 'PAID' 
+              (change.type === 'added' || change.type === 'modified') &&
+              docData.hoaDonHopDong &&
+              docData.hoaDonHopDong.trangThai === 'PAID'
             );
           })
           .map(change => change.doc);
@@ -326,18 +318,18 @@ async function distributeNewContractsToStaff(newContracts) {
   try {
     // Lấy danh sách nhân viên từ Realtime Database
     const staffSnapshot = await db.ref('NguoiDung')
-      .orderByChild('loaiTaihoan')
+      .orderByChild('loaiTaiKhoan')
       .equalTo('NhanVien')
       .once('value');
 
     const staffList = [];
     staffSnapshot.forEach((childSnapshot) => {
-      const staff={
+      const staff = {
         id: childSnapshot.key,
         ...childSnapshot.val()
       };
       // Chỉ thêm nhân viên có trạng_thai_taikhoan là "HoatDong"
-      if (staff.trang_thaitaikhoan === 'HoatDong') {
+      if (staff.trangThaiTaiKhoan === 'HoatDong') {
         staffList.push(staff);
       }
     });
@@ -396,7 +388,7 @@ function monitorProcessingContracts() {
     // Tạo query để lắng nghe các hợp đồng ở trạng thái PROCESSING
     const processingContractsQuery = dbFirestore.collection('PhanChiaCV')
       .where('trangThai', '==', 'PROCESSING')
-      // .where('thoigian', '<=', Date.now() - processingTimeLimit);
+    // .where('thoigian', '<=', Date.now() - processingTimeLimit);
     // Thiết lập listener
     const unsubscribe = processingContractsQuery.onSnapshot(async (snapshot) => {
       console.log(`Có ${snapshot.docChanges().length} công việc đang được xử lý`);
@@ -411,8 +403,8 @@ function monitorProcessingContracts() {
         // Nếu vượt quá thời gian xử lý
         if (currentTime - assignmentTime > processingTimeLimit) {
           await redistributeContract(
-            assignment, 
-            change.doc.id, 
+            assignment,
+            change.doc.id,
             assignment.idHopDong
           );
         }
@@ -442,17 +434,17 @@ async function redistributeContract(currentAssignment, assignmentId, contractId)
       .equalTo('NhanVien')
       .once('value');
 
-      const staffList = [];
-      staffSnapshot.forEach((childSnapshot) => {
-        const staff={
-          id: childSnapshot.key,
-          ...childSnapshot.val()
-        };
-        // Chỉ thêm nhân viên có trạng_thai_taikhoan là "HoatDong"
-        if (staff.trang_thaitaikhoan === 'HoatDong') {
-          staffList.push(staff);
-        }
-      });
+    const staffList = [];
+    staffSnapshot.forEach((childSnapshot) => {
+      const staff = {
+        id: childSnapshot.key,
+        ...childSnapshot.val()
+      };
+      // Chỉ thêm nhân viên có trạng_thai_taikhoan là "HoatDong"
+      if (staff.trang_thaitaikhoan === 'HoatDong') {
+        staffList.push(staff);
+      }
+    });
 
     // Kiểm tra nếu không có nhân viên
     if (staffList.length === 0) {
@@ -463,7 +455,7 @@ async function redistributeContract(currentAssignment, assignmentId, contractId)
     return await dbFirestore.runTransaction(async (transaction) => {
       const assignmentRef = dbFirestore.collection('PhanChiaCV').doc(assignmentId);
       const assignmentDoc = await transaction.get(assignmentRef);
-      
+
       // Kiểm tra trạng thái
       if (!assignmentDoc.exists || assignmentDoc.data().trangThai !== 'PROCESSING') {
         console.log(`Công việc ${assignmentId} không thể phân phối lại`);
@@ -472,7 +464,7 @@ async function redistributeContract(currentAssignment, assignmentId, contractId)
 
       // Tìm vị trí nhân viên hiện tại
       const currentStaffIndex = staffList.findIndex(staff => staff.id === currentAssignment.idNhanVien);
-      
+
       // Chọn nhân viên tiếp theo
       const nextStaffIndex = (currentStaffIndex + 1) % staffList.length;
       const selectedStaff = staffList[nextStaffIndex];
@@ -485,7 +477,7 @@ async function redistributeContract(currentAssignment, assignmentId, contractId)
 
       // Tạo tham chiếu mới cho công việc
       const newAssignmentRef = dbFirestore.collection('PhanChiaCV').doc();
-      
+
       // Thêm công việc mới bằng transaction
       transaction.create(newAssignmentRef, {
         idNhanVien: selectedStaff.id,
@@ -524,4 +516,4 @@ function startContractMonitoring() {
 }
 
 
-module.exports = { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts, checkAndNotifyMonthlyInvoice,startContractMonitoring,monitorProcessingContracts }
+module.exports = { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts, checkAndNotifyMonthlyInvoice, startContractMonitoring, monitorProcessingContracts }

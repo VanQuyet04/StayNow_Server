@@ -141,13 +141,22 @@ cron.schedule('0 */1 * * *', checkAndUpdateExpiredContracts);
 cron.schedule('0 */1 * * *', checkAndUpdateExpiresSoonContracts);
 
 
-// // Start monitoring contracts
+//Hàm check full mỗi 10s
+function checkTime() {
+    cron.schedule('*/10 * * * * *', checkBillContractAndUpdateContracts);
+    cron.schedule('*/10 * * * * *', checkAndUpdateContractsStatus);
+    cron.schedule('*/10 * * * * *', checkAndUpdateExpiredContracts);
+    cron.schedule('*/10 * * * * *', checkAndUpdateExpiresSoonContracts);
+    cron.schedule('*/10 * * * * *', monitorProcessingContracts);
+}
+
+// Start monitoring contracts
 // startContractMonitoring()
-// //10s chạy 1 lần
 
 // cron.schedule('*/10 * * * * *',monitorProcessingContracts);
 
-// // Lịch trình chạy mỗi 10 giây
+// Lịch trình chạy mỗi 10 giây
+
 // cron.schedule('*/10 * * * * *', async () => {
 //     try {
 //       await checkAndNotifyMonthlyInvoice();
