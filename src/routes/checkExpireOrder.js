@@ -49,9 +49,9 @@ async function checkBillContractAndUpdateContracts() {
       // Cập nhật Trang_thai_phong thành false trong PhongTro
       const roomRef = db.collection('PhongTro').doc(maPhong);
       await roomRef.update({
-        Trang_thai_phong: false
+        trangThaiPhong: false
       });
-      console.log(`Phòng ${maPhong} đã được cập nhật trạng thái Trang_thai_phong thành false.`);
+      console.log(`Phòng ${maPhong} đã được cập nhật trạng thái trangThaiPhong thành false.`);
     }
   }
 }
@@ -69,14 +69,14 @@ async function checkAndUpdateContractsStatus() {
     const maPhong = contract.maPhong;
 
     // Kiểm tra và cập nhật trạng thái của hợp đồng trong HopDong
-    if (contract.hoaDonHopDong.trangThai === 'EXPIRED' || contract.hoaDonHopDong.trangThai === 'TERMINATED') {
+    if (contract.hoaDonHopDong.trangThai === 'EXPIRED' || contract.hoaDonHopDong.trangThai === 'CANCELLED') {
 
       // Cập nhật trạng thái của phòng (PhongTro) thành false
       const roomRef = db.collection('PhongTro').doc(maPhong);
       await roomRef.update({
-        Trang_thaiphong: false
+        trangThaiPhong: false
       });
-      console.log(`Phòng ${maPhong} đã được cập nhật trạng thái Trang_thaiphong thành false.`);
+      console.log(`Phòng ${maPhong} đã được cập nhật trạng thái trangThaiPhong thành false.`);
     }
   }
 }
@@ -326,7 +326,7 @@ async function distributeNewContractsToStaff(newContracts) {
   try {
     // Lấy danh sách nhân viên từ Realtime Database
     const staffSnapshot = await db.ref('NguoiDung')
-      .orderByChild('loai_taikhoan')
+      .orderByChild('loaiTaihoan')
       .equalTo('NhanVien')
       .once('value');
 
@@ -438,7 +438,7 @@ async function redistributeContract(currentAssignment, assignmentId, contractId)
   try {
     // Lấy danh sách nhân viên trước khi bắt đầu transaction
     const staffSnapshot = await db.ref('NguoiDung')
-      .orderByChild('loai_taikhoan')
+      .orderByChild('loaiTaiKhoan')
       .equalTo('NhanVien')
       .once('value');
 
