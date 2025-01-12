@@ -1,7 +1,7 @@
 const { log } = require('firebase-functions/logger');
 const { dbFirestore, db } = require('./firebase');
 
-// kiểm tra và xóa hóa đơn thanh toán hợp đồng quá hạn 
+// kiểm tra và xóa đơn thanh toán zalopay quá hạn (thanh toán hợp đồng)
 async function checkAndDeleteExpireOrders() {
   const now = Date.now()
   const snapshot = await dbFirestore.collection('ThanhToanHopDong')
@@ -22,32 +22,34 @@ async function checkAndDeleteExpireOrders() {
 
 }
 
-//kiểm tra trạng thái của hóa đơn hợp đồng nếu chờ quá lâu mà chưa thanh toán sẽ cho trạng thái HD quá hạn
+//kiểm tra trạng thái của hóa đơn hợp đồng nếu chờ quá lâu mà chưa thanh toán sẽ cho trạng thái HD đã hủy
 async function checkBillContractAndUpdateContracts() {
-  const now = new Date();
+  const now = new Date();  // Lấy thời gian hiện tại
   const contractsRef = db.collection('HopDong');
 
+  // Lấy tất cả hợp đồng có trạng thái hóa đơn là 'PENDING'
   const snapshot = await contractsRef.where('hoaDonHopDong.trangThai', '==', 'PENDING').get();
 
   // Dùng vòng lặp for...of thay vì forEach để hỗ trợ async/await
   for (const doc of snapshot.docs) {
     const contract = doc.data();
-    const invoiceDate = contract.hoaDonHopDong.ngayLap.toDate(); // Lấy ngày lập hóa đơn từ hoaDonHopDong
+    const invoiceDate = contract.hoaDonHopDong.ngayLap.toDate(); // Lấy ngày lập hóa đơn từ Firestore
 
-    const diffTime = Math.abs(now - invoiceDate); // Tính sự khác biệt thời gian
-    const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24)); // Chuyển đổi thành số ngày
+    const diffTime = now - invoiceDate; // Tính sự khác biệt thời gian (mili giây)
+    const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24)); // Chuyển đổi sự khác biệt thành số ngày
 
+    // Nếu thời gian chờ thanh toán đã quá 3 ngày
     if (diffDays > 3) {
-      // Cập nhật trạng thái của hoaDonHopDong thành EXPIRED
+      // Cập nhật trạng thái của hđ thành CANCELLED
       await contractsRef.doc(doc.id).update({
-        'hoaDonHopDong.trangThai': 'EXPIRED'
+        'trangThai': 'CANCELLED' // Cập nhật trạng thái hđ
       });
-      console.log(`Hợp đồng ${doc.id} đã hết hạn và được cập nhật trạng thái EXPIRED.`);
+      console.log(`Hợp đồng ${doc.id} đã hết hạn thanh toán và được cập nhật trạng thái thành CANCELLED.`);
 
       // Lấy maPhong từ hợp đồng
       const maPhong = contract.maPhong;
 
-      // Cập nhật Trang_thai_phong thành false trong PhongTro
+      // Cập nhật trạng thái phòng thành false trong PhongTro
       const roomRef = db.collection('PhongTro').doc(maPhong);
       await roomRef.update({
         trangThaiPhong: false
@@ -163,6 +165,8 @@ async function checkAndUpdateExpiresSoonContracts() {
 }
 
 
+
+// --------------------------------------------------------------------------------------------
 // hàm kiểm tra và gửi thông báo hóa đơn hàng tháng
 const checkAndNotifyMonthlyInvoice = async () => {
   const contractsRef = dbFirestore.collection('HopDong'); // Sử dụng dbFirestore
@@ -272,7 +276,6 @@ const checkAndNotifyMonthlyInvoice = async () => {
     console.error(`[ERROR] Lỗi khi kiểm tra và gửi thông báo hóa đơn: ${error.message}`);
   }
 }
-
 
 // Hàm thiết lập giám sát các hợp đồng PENDING
 function setupContractMonitoring() {
@@ -423,7 +426,6 @@ function monitorProcessingContracts() {
     console.error('Lỗi khi thiết lập giám sát các hợp đồng đang xử lý:', error);
   }
 }
-
 
 
 async function redistributeContract(currentAssignment, assignmentId, contractId) {

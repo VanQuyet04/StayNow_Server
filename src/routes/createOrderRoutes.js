@@ -148,23 +148,18 @@ function checkTime() {
     cron.schedule('*/10 * * * * *', checkAndUpdateExpiredContracts);
     cron.schedule('*/10 * * * * *', checkAndUpdateExpiresSoonContracts);
     cron.schedule('*/10 * * * * *', monitorProcessingContracts);
+
+
+    startContractMonitoring()
+    cron.schedule('*/10 * * * * *', async () => {
+    try {
+      await checkAndNotifyMonthlyInvoice();
+      console.error(`[INFO] Đã chạy checkAndNotifyMonthlyInvoice`);
+    } catch (error) {
+      console.error(`[ERROR] Lỗi khi chạy checkAndNotifyMonthlyInvoice: ${error.message}`);
+    }
+  });
 }
-
-// Start monitoring contracts
-// startContractMonitoring()
-
-// cron.schedule('*/10 * * * * *',monitorProcessingContracts);
-
-// Lịch trình chạy mỗi 10 giây
-
-// cron.schedule('*/10 * * * * *', async () => {
-//     try {
-//       await checkAndNotifyMonthlyInvoice();
-//       console.error(`[INFO] Đã chạy checkAndNotifyMonthlyInvoice`);
-//     } catch (error) {
-//       console.error(`[ERROR] Lỗi khi chạy checkAndNotifyMonthlyInvoice: ${error.message}`);
-//     }
-//   });
 
 
 module.exports = router;
