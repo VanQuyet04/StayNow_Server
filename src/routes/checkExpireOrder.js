@@ -1,14 +1,19 @@
 const { log } = require('firebase-functions/logger');
 const { dbFirestore, db } = require('./firebase');
 
-// kiểm tra và xóa đơn thanh toán zalopay quá hạn (thanh toán hợp đồng)
+// kiểm tra và xóa đơn thanh toán zalopay quá hạn(đơn được tạo ra khi thanh toán zalopay- ko phải hóa đơn từ staynow)
 async function checkAndDeleteExpireOrders() {
   const now = Date.now()
-  const snapshot = await dbFirestore.collection('ThanhToanHopDong')
+
+  const snapshotHopDong = await dbFirestore.collection('ThanhToanHopDong')
     .where('status', '==', 'PENDING')
     .get();
 
-  snapshot.forEach(async (doc) => {
+    const snapshotHoaDon = await dbFirestore.collection('ThanhToanHoaDon')
+    .where('status', '==', 'PENDING')
+    .get();
+
+  snapshotHopDong.forEach(async (doc) => {
     const data = doc.data();
     const isExpired = data.app_time + data.expire_duration_seconds * 1000 < now
 
@@ -20,7 +25,20 @@ async function checkAndDeleteExpireOrders() {
 
   })
 
+  snapshotHoaDon.forEach(async (doc) => {
+    const data = doc.data();
+    const isExpired = data.app_time + data.expire_duration_seconds * 1000 < now
+
+    if (isExpired) {
+      console.log(`Deleting expired order : ${doc.id}`);
+      await dbFirestore.collection('ThanhToanHoaDon').doc(doc.id).delete();
+
+    }
+
+  })
+
 }
+
 
 //kiểm tra trạng thái của hóa đơn hợp đồng nếu chờ quá lâu mà chưa thanh toán sẽ cho trạng thái HD đã hủy
 async function checkBillContractAndUpdateContracts() {
