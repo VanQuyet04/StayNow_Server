@@ -39,7 +39,8 @@ async function checkAndDeleteExpireOrders() {
 
 }
 
-//kiểm tra trạng thái của hóa đơn hợp đồng nếu chờ quá lâu mà chưa thanh toán sẽ chuyển trangThai hợp đồng sang CANCELLED
+//3 hàm sẽ test
+//kiểm tra trạng thái của hóa đơn hợp đồng nếu chờ quá 3 ngày mà chưa thanh toán sẽ chuyển trangThai hợp đồng lẫn hóa đơn sang CANCELLED
 async function checkBillContractAndUpdateContracts() {
   const now = new Date();  // Lấy thời gian hiện tại
 
@@ -77,32 +78,6 @@ async function checkBillContractAndUpdateContracts() {
   }
 
 }
-
-//kiểm tra trạng thái của hợp đồng mà quá hạn hoặc bị hủy thì sẽ update trạng thái phòng thành false
-async function checkAndUpdateContractsStatus() {
-  const contractsRef = db.collection('HopDong');
-
-  const snapshot = await contractsRef.where('hoaDonHopDong.trangThai', 'in', ['EXPIRED', 'TERMINATED', 'CANCELLED']).get();
-
-  // Dùng vòng lặp for...of để hỗ trợ async/await
-  for (const doc of snapshot.docs) {
-    const contract = doc.data();
-
-    const maPhong = contract.maPhong;
-
-    // Kiểm tra và cập nhật trạng thái của hợp đồng trong HopDong
-    if (contract.hoaDonHopDong.trangThai === 'EXPIRED' || contract.hoaDonHopDong.trangThai === 'CANCELLED' || contract.hoaDonHopDong.trangThai === 'TERMINATED') {
-
-      // Cập nhật trạng thái của phòng (PhongTro) thành false
-      const roomRef = db.collection('PhongTro').doc(maPhong);
-      await roomRef.update({
-        trangThaiPhong: false
-      });
-      console.log(`Phòng ${maPhong} đã được cập nhật trạng thái trangThaiPhong thành false.`);
-    }
-  }
-}
-
 // kiểm tra nếu quá hạn hợp đồng thì tự chuyển đổi trạng thái hợp đồng
 // chi tiết: quá 1 ngày chuyển qua EXPIRED, quá 3 ngày chuyển qua CANCELLED
 async function checkAndUpdateExpiredContracts() {
@@ -126,6 +101,24 @@ async function checkAndUpdateExpiredContracts() {
         await contractsRef.doc(contractId).update({
           trangThai: 'EXPIRED',
         });
+
+        const notification = {
+          tieuDe: 'Nhắc nhở thay đổi trạng thái hợp đồng',
+          tinNhan: `Hợp đồng với mã ${contract.maHopDong} đã qúa hạn và đã được thay đổi trạng thái thành EXPIRED`,
+          idModel: contractId,
+          loaiThongBao: 'kiemtranhacnhohopdong',
+          thoiGianGuiThongBao: Date.now(),
+        };
+        const ref1 = db.ref(`ThongBao/${contract.nguoiThue.maNguoiDung}`);
+        const ref2 = db.ref(`ThongBao/${contract.chuNha.maNguoiDung}`);
+
+        // Gửi đồng thời đến cả 2 tham chiếu
+        await Promise.all([
+          ref1.push(notification),
+          ref2.push(notification)
+        ]);
+
+        console.log("Thông báo đã được gửi đến cả người thuê và chủ nhà.");
         console.log(`Hợp đồng ${contractId} đã được cập nhật trạng thái thành EXPIRED.`);
       }
 
@@ -134,6 +127,26 @@ async function checkAndUpdateExpiredContracts() {
         await contractsRef.doc(contractId).update({
           trangThai: 'CANCELLED',
         });
+
+        const notification = {
+          tieuDe: 'Nhắc nhở thay đổi trạng thái hợp đồng',
+          tinNhan: `Hợp đồng với mã ${contract.maHopDong} đã quá hạn 3 ngày và đã được thay đổi trạng thái thành CANCELLED`,
+          idModel: contractId,
+          loaiThongBao: 'kiemtranhacnhohopdong',
+          thoiGianGuiThongBao: Date.now(),
+        };
+
+        const ref1 = db.ref(`ThongBao/${contract.nguoiThue.maNguoiDung}`);
+        const ref2 = db.ref(`ThongBao/${contract.chuNha.maNguoiDung}`);
+
+        // Gửi đồng thời đến cả 2 tham chiếu
+        await Promise.all([
+          ref1.push(notification),
+          ref2.push(notification)
+        ]);
+
+        console.log("Thông báo đã được gửi đến cả người thuê và chủ nhà.");
+
         console.log(`Hợp đồng ${contractId} đã được cập nhật trạng thái thành CANCELLED.`);
       }
 
@@ -142,7 +155,6 @@ async function checkAndUpdateExpiredContracts() {
     console.error('Lỗi khi kiểm tra và cập nhật trạng thái hợp đồng:', error);
   }
 }
-
 //kiểm tra nếu hợp đồng sắp quá hạn(trước 3 ngày) thì thông báo đến cho người dùng
 async function checkAndUpdateExpiresSoonContracts() {
   log('Checking and updating contracts that are about to expire...');
@@ -174,6 +186,7 @@ async function checkAndUpdateExpiresSoonContracts() {
           tinNhan: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sắp hết hạn vào ngày ${ngayKetThuc}.`,
           thoiGian: currentDate.toTimeString().split(' ')[0], // Lấy thời gian hiện tại (giờ phút giây)
           ngayGuiThongBao: currentDate.toLocaleDateString('vi-VN'), // Lấy ngày hiện tại
+          loaiThongBao:'kiemtranhacnhohopdong',
           thoiGianGuiThongBao: Date.now(), // Timestamp hiện tại
         };
 
@@ -194,6 +207,30 @@ async function checkAndUpdateExpiresSoonContracts() {
 }
 
 
+//kiểm tra trạng thái của hợp đồng mà quá hạn hoặc bị hủy thì sẽ update trạng thái phòng thành false
+async function checkAndUpdateContractsStatus() {
+  const contractsRef = db.collection('HopDong');
+
+  const snapshot = await contractsRef.where('hoaDonHopDong.trangThai', 'in', ['EXPIRED', 'TERMINATED', 'CANCELLED']).get();
+
+  // Dùng vòng lặp for...of để hỗ trợ async/await
+  for (const doc of snapshot.docs) {
+    const contract = doc.data();
+
+    const maPhong = contract.maPhong;
+
+    // Kiểm tra và cập nhật trạng thái của hợp đồng trong HopDong
+    if (contract.hoaDonHopDong.trangThai === 'EXPIRED' || contract.hoaDonHopDong.trangThai === 'CANCELLED' || contract.hoaDonHopDong.trangThai === 'TERMINATED') {
+
+      // Cập nhật trạng thái của phòng (PhongTro) thành false
+      const roomRef = db.collection('PhongTro').doc(maPhong);
+      await roomRef.update({
+        trangThaiPhong: false
+      });
+      console.log(`Phòng ${maPhong} đã được cập nhật trạng thái trangThaiPhong thành false.`);
+    }
+  }
+}
 // --------------------------------------------------------------------------------------------
 // hàm kiểm tra và gửi thông báo hóa đơn hàng tháng
 const checkAndNotifyMonthlyInvoice = async () => {
@@ -367,6 +404,7 @@ async function distributeNewContractsToStaff(newContracts) {
     // Kiểm tra nếu danh sách nhân viên trống
     if (staffList.length === 0) {
       throw new Error('Không có nhân viên nào để phân chia công việc.');
+      return;
     }
 
     // Lấy thông tin lần phân chia cuối cùng từ Firestore
@@ -479,6 +517,7 @@ async function redistributeContract(currentAssignment, assignmentId, contractId)
     // Kiểm tra nếu không có nhân viên
     if (staffList.length === 0) {
       throw new Error('Không có nhân viên nào để phân chia công việc.');
+      return;
     }
 
     // Sử dụng transaction để đảm bảo tính nhất quán

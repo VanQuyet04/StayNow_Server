@@ -4,7 +4,7 @@ const admin = require('firebase-admin');
 const config = require('../config/config')
 
 
-// // Đọc file json firebase trực tiếp
+// Đọc file json firebase trực tiếp
 // const serviceAccount = require('../../service/staynowapp1-firebase-adminsdk.json')
 
 // Đọc file bí mật từ /etc/secrets
