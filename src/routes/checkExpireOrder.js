@@ -40,13 +40,16 @@ async function checkAndDeleteExpireOrders() {
 }
 
 
-//3 hàm sẽ test
+//2 hàm sẽ test
 
-// kiểm tra nếu quá hạn hợp đồng thì tự chuyển đổi trạng thái hợp đồng
+// kiểm tra nếu các hợp đồng ACTIVE quá hạn hợp đồng thì tự chuyển đổi trạng thái hợp đồng
 // chi tiết:  quá 3 ngày chuyển qua TERMINATED
 async function checkAndUpdateExpiredContracts() {
-  const contractsRef = db.collection('HopDong');
-  const currentDate = new Date(); // Lấy ngày hiện tại
+
+  const contractsRef = dbFirestore.collection('HopDong');
+  const roomsRef = dbFirestore.collection('PhongTro');
+  const currentDate = new Date(); // Ngày hiện tại
+  const threeDaysInMs = 4 * 24 * 60 * 60 * 1000;
 
   try {
     const snapshot = await contractsRef.get();
@@ -56,45 +59,30 @@ async function checkAndUpdateExpiredContracts() {
       const contractId = doc.id;
 
       // Lấy ngày kết thúc và chuyển đổi thành Date object
-      const ngayKetThuc = contract.ngayKetThuc; // Giả sử 'ngayKetThuc' là string dạng 'dd/MM/yyyy'
-      const [day, month, year] = ngayKetThuc.split('/').map(Number); // Chuyển đổi định dạng
+      const ngayKetThuc = contract.ngayKetThuc;
+      const [day, month, year] = ngayKetThuc.split('/').map(Number);
       const endDate = new Date(year, month - 1, day);
 
-      // Kiểm tra nếu ngày kết thúc đã qua và trạng thái chưa là EXPIRED
-      if (endDate < currentDate && contract.trangThai !== 'EXPIRED') {
-        await contractsRef.doc(contractId).update({
-          trangThai: 'EXPIRED',
-        });
+      // Tính thời gian còn lại đến ngày kết thúc
+      const diffTime = currentDate - endDate;
 
-        const notification = {
-          tieuDe: 'Nhắc nhở thay đổi trạng thái hợp đồng',
-          tinNhan: `Hợp đồng với mã ${contract.maHopDong} đã qúa hạn và đã được thay đổi trạng thái thành EXPIRED`,
-          idModel: contractId,
-          loaiThongBao: 'kiemtranhacnhohopdong',
-          thoiGianGuiThongBao: Date.now(),
-        };
-        const ref1 = db.ref(`ThongBao/${contract.nguoiThue.maNguoiDung}`);
-        const ref2 = db.ref(`ThongBao/${contract.chuNha.maNguoiDung}`);
+      // Kiểm tra nếu quá hạn 3 ngày thì notify 
+      if (contract.trangThai == 'ACTIVE' && diffTime > threeDaysInMs) {
+        const roomId = contract.thongtinphong.maPhongTro;
 
-        // Gửi đồng thời đến cả 2 tham chiếu
-        await Promise.all([
-          ref1.push(notification),
-          ref2.push(notification)
-        ]);
-
-        console.log("Thông báo đã được gửi đến cả người thuê và chủ nhà.");
-        console.log(`Hợp đồng ${contractId} đã được cập nhật trạng thái thành EXPIRED.`);
-      }
-
-      // Kiểm tra nếu ngày kết thúc đã qua và trạng thái chưa là EXPIRED
-      if (endDate < currentDate - 3 && contract.trangThai == 'EXPIRED') {
         await contractsRef.doc(contractId).update({
           trangThai: 'TERMINATED',
         });
 
+        await roomsRef.doc(roomId).update({
+          trangThaiPhong: false,
+          trangThaiDuyet: 'DaDuyet'
+        });
+        console.log("Đã cập nhật trạng thái phòng cho:" + roomId);
+
         const notification = {
           tieuDe: 'Nhắc nhở thay đổi trạng thái hợp đồng',
-          tinNhan: `Hợp đồng với mã ${contract.maHopDong} đã quá hạn 3 ngày và đã được thay đổi trạng thái thành CANCELLED`,
+          tinNhan: `Hợp đồng với mã ${contract.maHopDong} đã quá hạn 3 ngày và đã được thay đổi trạng thái thành TERMINATED`,
           idModel: contractId,
           loaiThongBao: 'kiemtranhacnhohopdong',
           thoiGianGuiThongBao: Date.now(),
@@ -111,7 +99,6 @@ async function checkAndUpdateExpiredContracts() {
 
         console.log("Thông báo đã được gửi đến cả người thuê và chủ nhà.");
 
-        console.log(`Hợp đồng ${contractId} đã được cập nhật trạng thái thành CANCELLED.`);
       }
 
     }
@@ -122,12 +109,14 @@ async function checkAndUpdateExpiredContracts() {
 
 //kiểm tra nếu hợp đồng sắp quá hạn(trước 3 ngày) thì thông báo đến cho người dùng
 async function checkAndUpdateExpiresSoonContracts() {
-  log('Checking and updating contracts that are about to expire...');
-  const contractsRef = db.collection('HopDong');
+  console.log("checkAndUpdateExpiresSoonContracts đang chạy");
+  const contractsRef = dbFirestore.collection('HopDong');
   const currentDate = new Date(); // Ngày hiện tại
-  const threeDaysInMs = 3 * 24 * 60 * 60 * 1000; // Số mili giây trong 3 ngày
+  const threeDaysInMs = 4 * 24 * 60 * 60 * 1000; // Số mili giây trong 4 ngày
 
   try {
+    console.log("Chạy vào try catch");
+
     const snapshot = await contractsRef.get();
 
     for (const doc of snapshot.docs) {
@@ -135,8 +124,8 @@ async function checkAndUpdateExpiresSoonContracts() {
       const contractId = doc.id;
 
       // Lấy ngày kết thúc và chuyển đổi thành Date object
-      const ngayKetThuc = contract.ngayKetThuc; // Giả sử 'ngayKetThuc' là string dạng 'dd/MM/yyyy'
-      const [day, month, year] = ngayKetThuc.split('/').map(Number); // Chuyển đổi định dạng
+      const ngayKetThuc = contract.ngayKetThuc;
+      const [day, month, year] = ngayKetThuc.split('/').map(Number);
       const endDate = new Date(year, month - 1, day);
 
       // Tính thời gian còn lại đến ngày kết thúc
@@ -144,15 +133,15 @@ async function checkAndUpdateExpiresSoonContracts() {
 
       // Nếu còn đúng 3 ngày hoặc ít hơn
       if (diffTime <= threeDaysInMs && diffTime > 0) {
+        console.log("Check điều kiện còn 3 ngày nữa đến hạn");
 
         // Tạo thông báo mới
         const notification = {
           tieuDe: 'Hợp đồng sắp hết hạn!!!',
           tinNhan: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sắp hết hạn vào ngày ${ngayKetThuc}.`,
-          thoiGian: currentDate.toTimeString().split(' ')[0], // Lấy thời gian hiện tại (giờ phút giây)
-          ngayGuiThongBao: currentDate.toLocaleDateString('vi-VN'), // Lấy ngày hiện tại
           loaiThongBao: 'kiemtranhacnhohopdong',
-          thoiGianGuiThongBao: Date.now(), // Timestamp hiện tại
+          idModel: contractId,
+          thoiGianGuiThongBao: Date.now(),
         };
 
         // Gửi thông báo cho cả người thuê và chủ trọ
@@ -160,6 +149,8 @@ async function checkAndUpdateExpiresSoonContracts() {
         for (const userId of userIds) {
           const ref = db.ref(`ThongBao/${userId}`);
           await ref.push(notification);
+          console.log(`đã noti cho ${userId}`);
+
         }
 
         console.log(`Hợp đồng ${contractId} đã sắp đến hạn rồi, bạn chú ý nhé`);
@@ -243,7 +234,7 @@ const checkAndNotifyMonthlyInvoice = async () => {
           tieuDe: 'Tạo hóa đơn kết thúc hợp đồng',
           tinNhan: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sẽ kết thúc vào ngày ${contract.ngayKetThuc}. Vui lòng tạo hóa đơn.`,
           idModel: contractId,
-          loaiThongBao:'xacNhanChamDut',
+          loaiThongBao: 'xacNhanChamDut',
           thoiGianGuiThongBao: Date.now(),
         };
 

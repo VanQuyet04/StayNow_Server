@@ -135,7 +135,6 @@ router.post('/create-order-service', async (req, res) => {
 });
 
 cron.schedule('*/10 * * * *', checkAndDeleteExpireOrders);
-
 cron.schedule('0 */1 * * *', checkAndUpdateExpiredContracts);
 cron.schedule('0 */1 * * *', checkAndUpdateExpiresSoonContracts);
 
@@ -150,14 +149,14 @@ function checkTime() {
 
     startContractMonitoring()
     cron.schedule('*/10 * * * * *', async () => {
-    try {
-      await checkAndNotifyMonthlyInvoice();
-      console.error(`[INFO] Đã chạy checkAndNotifyMonthlyInvoice`);
-    } catch (error) {
-      console.error(`[ERROR] Lỗi khi chạy checkAndNotifyMonthlyInvoice: ${error.message}`);
-    }
-  });
+        try {
+            await checkAndNotifyMonthlyInvoice();
+            console.error(`[INFO] Đã chạy checkAndNotifyMonthlyInvoice`);
+        } catch (error) {
+            console.error(`[ERROR] Lỗi khi chạy checkAndNotifyMonthlyInvoice: ${error.message}`);
+        }
+    });
 }
-checkTime()
+// checkTime()
 
 module.exports = router;
