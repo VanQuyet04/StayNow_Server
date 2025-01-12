@@ -9,7 +9,7 @@ async function checkAndDeleteExpireOrders() {
     .where('status', '==', 'PENDING')
     .get();
 
-    const snapshotHoaDon = await dbFirestore.collection('ThanhToanHoaDon')
+  const snapshotHoaDon = await dbFirestore.collection('ThanhToanHoaDon')
     .where('status', '==', 'PENDING')
     .get();
 
@@ -39,16 +39,16 @@ async function checkAndDeleteExpireOrders() {
 
 }
 
-
-//kiểm tra trạng thái của hóa đơn hợp đồng nếu chờ quá lâu mà chưa thanh toán sẽ cho trạng thái HD đã hủy
+//kiểm tra trạng thái của hóa đơn hợp đồng nếu chờ quá lâu mà chưa thanh toán sẽ chuyển trangThai hợp đồng sang CANCELLED
 async function checkBillContractAndUpdateContracts() {
   const now = new Date();  // Lấy thời gian hiện tại
+
   const contractsRef = db.collection('HopDong');
 
   // Lấy tất cả hợp đồng có trạng thái hóa đơn là 'PENDING'
-  const snapshot = await contractsRef.where('hoaDonHopDong.trangThai', '==', 'PENDING').get();
+  const snapshotHopDong = await contractsRef.where('hoaDonHopDong.trangThai', '==', 'PENDING').get();
 
-  // Dùng vòng lặp for...of thay vì forEach để hỗ trợ async/await
+  // -------------------------------------------Kiểm tra hóa đơn hợp đồng
   for (const doc of snapshot.docs) {
     const contract = doc.data();
     const invoiceDate = contract.hoaDonHopDong.ngayLap.toDate(); // Lấy ngày lập hóa đơn từ Firestore
@@ -75,6 +75,7 @@ async function checkBillContractAndUpdateContracts() {
       console.log(`Phòng ${maPhong} đã được cập nhật trạng thái trangThaiPhong thành false.`);
     }
   }
+
 }
 
 //kiểm tra trạng thái của hợp đồng mà quá hạn hoặc bị hủy thì sẽ update trạng thái phòng thành false
@@ -102,7 +103,8 @@ async function checkAndUpdateContractsStatus() {
   }
 }
 
-// kiểm tra nếu quá hạn hợp đồng thì tự chuyển đổi trạng thái qua EXPIRED
+// kiểm tra nếu quá hạn hợp đồng thì tự chuyển đổi trạng thái hợp đồng
+// chi tiết: quá 1 ngày chuyển qua EXPIRED, quá 3 ngày chuyển qua CANCELLED
 async function checkAndUpdateExpiredContracts() {
   const contractsRef = db.collection('HopDong');
   const currentDate = new Date(); // Lấy ngày hiện tại
@@ -126,13 +128,22 @@ async function checkAndUpdateExpiredContracts() {
         });
         console.log(`Hợp đồng ${contractId} đã được cập nhật trạng thái thành EXPIRED.`);
       }
+
+      // Kiểm tra nếu ngày kết thúc đã qua và trạng thái chưa là EXPIRED
+      if (endDate < currentDate - 3 && contract.trangThai == 'EXPIRED') {
+        await contractsRef.doc(contractId).update({
+          trangThai: 'CANCELLED',
+        });
+        console.log(`Hợp đồng ${contractId} đã được cập nhật trạng thái thành CANCELLED.`);
+      }
+
     }
   } catch (error) {
     console.error('Lỗi khi kiểm tra và cập nhật trạng thái hợp đồng:', error);
   }
 }
 
-//kiểm tra nếu hợp đồng sắp quá hạn thì thông báo đến cho người dùng
+//kiểm tra nếu hợp đồng sắp quá hạn(trước 3 ngày) thì thông báo đến cho người dùng
 async function checkAndUpdateExpiresSoonContracts() {
   log('Checking and updating contracts that are about to expire...');
   const contractsRef = db.collection('HopDong');
@@ -181,7 +192,6 @@ async function checkAndUpdateExpiresSoonContracts() {
     console.error('Lỗi khi kiểm tra và cập nhật trạng thái hợp đồng sắp hết hạn:', error);
   }
 }
-
 
 
 // --------------------------------------------------------------------------------------------
