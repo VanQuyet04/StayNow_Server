@@ -160,6 +160,6 @@ function checkTime() {
     }
   });
 }
-checkTime()
+// checkTime()
 
 module.exports = router;
