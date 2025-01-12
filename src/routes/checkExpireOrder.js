@@ -39,47 +39,11 @@ async function checkAndDeleteExpireOrders() {
 
 }
 
+
 //3 hàm sẽ test
-//kiểm tra trạng thái của hóa đơn hợp đồng nếu chờ quá 3 ngày mà chưa thanh toán sẽ chuyển trangThai hợp đồng lẫn hóa đơn sang CANCELLED
-async function checkBillContractAndUpdateContracts() {
-  const now = new Date();  // Lấy thời gian hiện tại
 
-  const contractsRef = db.collection('HopDong');
-
-  // Lấy tất cả hợp đồng có trạng thái hóa đơn là 'PENDING'
-  const snapshotHopDong = await contractsRef.where('hoaDonHopDong.trangThai', '==', 'PENDING').get();
-
-  // -------------------------------------------Kiểm tra hóa đơn hợp đồng
-  for (const doc of snapshot.docs) {
-    const contract = doc.data();
-    const invoiceDate = contract.hoaDonHopDong.ngayLap.toDate(); // Lấy ngày lập hóa đơn từ Firestore
-
-    const diffTime = now - invoiceDate; // Tính sự khác biệt thời gian (mili giây)
-    const diffDays = Math.ceil(diffTime / (1000 * 3600 * 24)); // Chuyển đổi sự khác biệt thành số ngày
-
-    // Nếu thời gian chờ thanh toán đã quá 3 ngày
-    if (diffDays > 3) {
-      // Cập nhật trạng thái của hđ thành CANCELLED
-      await contractsRef.doc(doc.id).update({
-        'trangThai': 'CANCELLED' // Cập nhật trạng thái hđ
-      });
-      console.log(`Hợp đồng ${doc.id} đã hết hạn thanh toán và được cập nhật trạng thái thành CANCELLED.`);
-
-      // Lấy maPhong từ hợp đồng
-      const maPhong = contract.maPhong;
-
-      // Cập nhật trạng thái phòng thành false trong PhongTro
-      const roomRef = db.collection('PhongTro').doc(maPhong);
-      await roomRef.update({
-        trangThaiPhong: false
-      });
-      console.log(`Phòng ${maPhong} đã được cập nhật trạng thái trangThaiPhong thành false.`);
-    }
-  }
-
-}
 // kiểm tra nếu quá hạn hợp đồng thì tự chuyển đổi trạng thái hợp đồng
-// chi tiết: quá 1 ngày chuyển qua EXPIRED, quá 3 ngày chuyển qua CANCELLED
+// chi tiết:  quá 3 ngày chuyển qua TERMINATED
 async function checkAndUpdateExpiredContracts() {
   const contractsRef = db.collection('HopDong');
   const currentDate = new Date(); // Lấy ngày hiện tại
@@ -125,7 +89,7 @@ async function checkAndUpdateExpiredContracts() {
       // Kiểm tra nếu ngày kết thúc đã qua và trạng thái chưa là EXPIRED
       if (endDate < currentDate - 3 && contract.trangThai == 'EXPIRED') {
         await contractsRef.doc(contractId).update({
-          trangThai: 'CANCELLED',
+          trangThai: 'TERMINATED',
         });
 
         const notification = {
@@ -155,6 +119,7 @@ async function checkAndUpdateExpiredContracts() {
     console.error('Lỗi khi kiểm tra và cập nhật trạng thái hợp đồng:', error);
   }
 }
+
 //kiểm tra nếu hợp đồng sắp quá hạn(trước 3 ngày) thì thông báo đến cho người dùng
 async function checkAndUpdateExpiresSoonContracts() {
   log('Checking and updating contracts that are about to expire...');
@@ -186,7 +151,7 @@ async function checkAndUpdateExpiresSoonContracts() {
           tinNhan: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sắp hết hạn vào ngày ${ngayKetThuc}.`,
           thoiGian: currentDate.toTimeString().split(' ')[0], // Lấy thời gian hiện tại (giờ phút giây)
           ngayGuiThongBao: currentDate.toLocaleDateString('vi-VN'), // Lấy ngày hiện tại
-          loaiThongBao:'kiemtranhacnhohopdong',
+          loaiThongBao: 'kiemtranhacnhohopdong',
           thoiGianGuiThongBao: Date.now(), // Timestamp hiện tại
         };
 
@@ -207,35 +172,12 @@ async function checkAndUpdateExpiresSoonContracts() {
 }
 
 
-//kiểm tra trạng thái của hợp đồng mà quá hạn hoặc bị hủy thì sẽ update trạng thái phòng thành false
-async function checkAndUpdateContractsStatus() {
-  const contractsRef = db.collection('HopDong');
-
-  const snapshot = await contractsRef.where('hoaDonHopDong.trangThai', 'in', ['EXPIRED', 'TERMINATED', 'CANCELLED']).get();
-
-  // Dùng vòng lặp for...of để hỗ trợ async/await
-  for (const doc of snapshot.docs) {
-    const contract = doc.data();
-
-    const maPhong = contract.maPhong;
-
-    // Kiểm tra và cập nhật trạng thái của hợp đồng trong HopDong
-    if (contract.hoaDonHopDong.trangThai === 'EXPIRED' || contract.hoaDonHopDong.trangThai === 'CANCELLED' || contract.hoaDonHopDong.trangThai === 'TERMINATED') {
-
-      // Cập nhật trạng thái của phòng (PhongTro) thành false
-      const roomRef = db.collection('PhongTro').doc(maPhong);
-      await roomRef.update({
-        trangThaiPhong: false
-      });
-      console.log(`Phòng ${maPhong} đã được cập nhật trạng thái trangThaiPhong thành false.`);
-    }
-  }
-}
 // --------------------------------------------------------------------------------------------
 // hàm kiểm tra và gửi thông báo hóa đơn hàng tháng
 const checkAndNotifyMonthlyInvoice = async () => {
   const contractsRef = dbFirestore.collection('HopDong'); // Sử dụng dbFirestore
   const currentDate = new Date();
+
   console.log(`[INFO] Bắt đầu kiểm tra hóa đơn lúc ${currentDate.toISOString()}`);
 
   try {
@@ -267,8 +209,12 @@ const checkAndNotifyMonthlyInvoice = async () => {
 
       console.log(`[DEBUG] Ngày bắt đầu: ${formatDate(ngayBatDau)}, Ngày kết thúc: ${formatDate(ngayKetThuc)}, Ngày thanh toán: ${ngayThanhToanHangThang}`);
 
-      if (currentDate >= ngayKetThuc) {
+      if (currentDate.getMonth() === ngayKetThuc.getMonth() &&
+        currentDate.getFullYear() === ngayKetThuc.getFullYear() &&
+        currentDate.toDateString() > ngayKetThuc.toDateString()) {
         console.log(`[INFO] Hợp đồng ${contractId} đã kết thúc, bỏ qua.`);
+        console.log(currentDate);
+        console.log(ngayKetThuc);
         continue;
       }
 
@@ -294,13 +240,15 @@ const checkAndNotifyMonthlyInvoice = async () => {
         currentDate.toDateString() === ngayKetThuc.toDateString()
       ) {
         const notification = {
-          tieuDe: 'Tạo hóa đơn tháng cuối cùng',
+          tieuDe: 'Tạo hóa đơn kết thúc hợp đồng',
           tinNhan: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sẽ kết thúc vào ngày ${contract.ngayKetThuc}. Vui lòng tạo hóa đơn.`,
           idModel: contractId,
+          loaiThongBao:'xacNhanChamDut',
           thoiGianGuiThongBao: Date.now(),
         };
 
-        const ref = db.ref(`ThongBao/${contract.maNguoiDung}`);
+        const ref = db.ref(`ThongBao/${contract.chuNha.maNguoiDung}`);
+
         await ref.push(notification);
 
         console.log(`[INFO] Thông báo tháng cuối đã được gửi cho hợp đồng ${contractId}.`);
@@ -330,6 +278,8 @@ const checkAndNotifyMonthlyInvoice = async () => {
         };
 
         const ref = db.ref(`ThongBao/${contract.chuNha.maNguoiDung}`);
+        console.log(contract.chuNha.maNguoiDung);
+
         await ref.push(notification);
 
         console.log(`[INFO] Thông báo hóa đơn hàng tháng đã được gửi cho hợp đồng ${contractId}.`);
@@ -466,8 +416,8 @@ function monitorProcessingContracts() {
         const currentTime = Date.now();
         const assignmentTime = assignment.thoigian;
         //chuyển sang 5'
-        // const processingTimeLimit = 20 * 1000;
-        const processingTimeLimit = 5 * 60 * 1000; // 5 phút
+        const processingTimeLimit = 20 * 1000;
+        // const processingTimeLimit = 5 * 60 * 1000; // 5 phút
 
         // Nếu vượt quá thời gian xử lý
         if (currentTime - assignmentTime > processingTimeLimit) {
@@ -509,7 +459,7 @@ async function redistributeContract(currentAssignment, assignmentId, contractId)
         ...childSnapshot.val()
       };
       // Chỉ thêm nhân viên có trạng_thai_taikhoan là "HoatDong"
-      if (staff.trang_thaitaikhoan === 'HoatDong') {
+      if (staff.trangThaiTaiKhoan === 'HoatDong') {
         staffList.push(staff);
       }
     });
@@ -585,4 +535,4 @@ function startContractMonitoring() {
 }
 
 
-module.exports = { checkAndDeleteExpireOrders, checkBillContractAndUpdateContracts, checkAndUpdateContractsStatus, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts, checkAndNotifyMonthlyInvoice, startContractMonitoring, monitorProcessingContracts }
+module.exports = { checkAndDeleteExpireOrders, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts, checkAndNotifyMonthlyInvoice, startContractMonitoring, monitorProcessingContracts }
