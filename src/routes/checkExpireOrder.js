@@ -86,7 +86,7 @@ async function checkAndUpdateExpiredContracts() {
           tinNhan: `Hợp đồng với mã ${contract.maHopDong} đã quá hạn 3 ngày và đã được thay đổi trạng thái thành Chờ xử lý chấm dứt`,
           idModel: contractId,
           loaiThongBao: 'kiemtranhacnhohopdong',
-          thoiGianGuiThongBao: Date.now(),
+          ngayGuiThongBao: Date.now(),
         };
 
         const ref1 = db.ref(`ThongBao/${contract.nguoiThue.maNguoiDung}`);
@@ -141,7 +141,7 @@ async function checkAndUpdateExpiresSoonContracts() {
           tinNhan: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sắp hết hạn vào ngày ${ngayKetThuc}.`,
           loaiThongBao: 'kiemtranhacnhohopdong',
           idModel: contractId,
-          thoiGianGuiThongBao: Date.now(),
+          ngayGuiThongBao: Date.now(),
         };
 
         // Gửi thông báo cho cả người thuê và chủ trọ
@@ -235,7 +235,7 @@ const checkAndNotifyMonthlyInvoice = async () => {
           tinNhan: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sẽ kết thúc vào ngày ${contract.ngayKetThuc}. Vui lòng tạo hóa đơn.`,
           idModel: contractId,
           loaiThongBao: 'xacNhanChamDut',
-          thoiGianGuiThongBao: Date.now(),
+          ngayGuiThongBao: Date.now(),
         };
 
         const ref = db.ref(`ThongBao/${contract.chuNha.maNguoiDung}`);
