@@ -264,7 +264,7 @@ const checkAndNotifyMonthlyInvoice = async () => {
           tieuDe: 'Tạo hóa đơn hàng tháng',
           tinNhan: `Hóa đơn tháng mới cho phòng ${contract.thongtinphong.tenPhong} cần được tạo.`,
           loaiThongBao: `invoiceCreation`,
-          thoiGianGuiThongBao: Date.now(),
+          ngayGuiThongBao: Date.now(),
           idModel: contractId
         };
 
