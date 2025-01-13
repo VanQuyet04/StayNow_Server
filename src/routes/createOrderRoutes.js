@@ -135,9 +135,6 @@ router.post('/create-order-service', async (req, res) => {
 });
 
 cron.schedule('*/10 * * * *', checkAndDeleteExpireOrders);
-cron.schedule('0 */1 * * *', checkAndUpdateExpiredContracts);
-cron.schedule('0 */1 * * *', checkAndUpdateExpiresSoonContracts);
-
 
 //Hàm check full mỗi 10s
 function checkTime() {
