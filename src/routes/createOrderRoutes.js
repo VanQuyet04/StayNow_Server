@@ -139,7 +139,6 @@ cron.schedule('*/10 * * * *', checkAndDeleteExpireOrders);
 //Hàm check full mỗi 10s
 function checkTime() {
 
-    cron.schedule('*/10 * * * * *', checkAndUpdateExpiredContracts);
     cron.schedule('*/10 * * * * *', checkAndUpdateExpiresSoonContracts);
     cron.schedule('*/10 * * * * *', monitorProcessingContracts);
 
@@ -154,6 +153,6 @@ function checkTime() {
         }
     });
 }
-// checkTime()
+checkTime()
 
 module.exports = router;

@@ -40,73 +40,7 @@ async function checkAndDeleteExpireOrders() {
 }
 
 
-//2 hàm sẽ test
-
-// kiểm tra nếu các hợp đồng ACTIVE quá hạn hợp đồng thì tự chuyển đổi trạng thái hợp đồng
-// chi tiết:  quá 3 ngày chuyển qua TERMINATED
-async function checkAndUpdateExpiredContracts() {
-  console.log("Hàm check quá hạn hợp đồng đang chạy");
-
-  const contractsRef = dbFirestore.collection('HopDong');
-  const roomsRef = dbFirestore.collection('PhongTro');
-  const currentDate = new Date(); // Ngày hiện tại
-  const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
-
-  try {
-    const snapshot = await contractsRef.get();
-
-    for (const doc of snapshot.docs) {
-      const contract = doc.data();
-      const contractId = doc.id;
-
-      // Lấy ngày kết thúc và chuyển đổi thành Date object
-      const ngayKetThuc = contract.ngayKetThuc;
-      const [day, month, year] = ngayKetThuc.split('/').map(Number);
-      const endDate = new Date(year, month - 1, day);
-
-      // Tính thời gian còn lại đến ngày kết thúc
-      const diffTime = currentDate - endDate;
-
-      // Kiểm tra nếu quá hạn 3 ngày thì notify 
-      if (contract.trangThai == 'ACTIVE' && diffTime > threeDaysInMs) {
-        const roomId = contract.thongtinphong.maPhongTro;
-
-        await contractsRef.doc(contractId).update({
-          trangThai: 'TERMINATED_PROCESSING',
-        });
-
-        await roomsRef.doc(roomId).update({
-          trangThaiPhong: false,
-          trangThaiDuyet: 'DaDuyet'
-        });
-        console.log("Đã cập nhật trạng thái phòng cho:" + roomId);
-
-        const notification = {
-          tieuDe: 'Nhắc nhở thay đổi trạng thái hợp đồng',
-          tinNhan: `Hợp đồng với mã ${contract.maHopDong} đã quá hạn 3 ngày và đã được thay đổi trạng thái thành Chờ xử lý chấm dứt`,
-          idModel: contractId,
-          loaiThongBao: 'kiemtranhacnhohopdong',
-          ngayGuiThongBao: Date.now(),
-        };
-
-        const ref1 = db.ref(`ThongBao/${contract.nguoiThue.maNguoiDung}`);
-        const ref2 = db.ref(`ThongBao/${contract.chuNha.maNguoiDung}`);
-
-        // Gửi đồng thời đến cả 2 tham chiếu
-        await Promise.all([
-          ref1.push(notification),
-          ref2.push(notification)
-        ]);
-
-        console.log("Thông báo đã được gửi đến cả người thuê và chủ nhà.");
-
-      }
-
-    }
-  } catch (error) {
-    console.error('Lỗi khi kiểm tra và cập nhật trạng thái hợp đồng:', error);
-  }
-}
+// 2 hàm sẽ test
 
 //kiểm tra nếu hợp đồng sắp quá hạn(trước 3 ngày) thì chuyển trạng thái qua sắp hết hạn và thông báo đến cho người dùng
 async function checkAndUpdateExpiresSoonContracts() {
@@ -130,18 +64,31 @@ async function checkAndUpdateExpiresSoonContracts() {
 
       // Tính thời gian còn lại đến ngày kết thúc
       const diffTime = endDate - currentDate;
+      console.log("diff:" + diffTime);
+      console.log("threeday:" + threeDaysInMs);
 
       // Nếu còn đúng 3 ngày hoặc ít hơn
       if (diffTime <= threeDaysInMs && diffTime > 0) {
         console.log("Check điều kiện còn 3 ngày nữa đến hạn");
 
+        const formatDate = () => {
+          const today = new Date();
+          const day = String(today.getDate()).padStart(2, '0'); // Lấy ngày, thêm số 0 nếu cần
+          const month = String(today.getMonth() + 1).padStart(2, '0'); // Tháng bắt đầu từ 0, cần +1
+          const year = today.getFullYear(); // Lấy năm
+          return `${day}-${month}-${year}`; // Ghép thành chuỗi dd-mm-yyyy
+        };
+
+        const ngayGuiThongBao = formatDate();
+        console.log(ngayGuiThongBao);
         // Tạo thông báo mới
         const notification = {
           tieuDe: 'Hợp đồng sắp hết hạn!!!',
           tinNhan: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sắp hết hạn vào ngày ${ngayKetThuc}.`,
           loaiThongBao: 'kiemtranhacnhohopdong',
           idModel: contractId,
-          ngayGuiThongBao: Date.now(),
+          thoiGianGuiThongBao: Date.now(),
+          ngayGuiThongBao: ngayGuiThongBao,
         };
 
         // Gửi thông báo cho cả người thuê và chủ trọ
@@ -230,12 +177,26 @@ const checkAndNotifyMonthlyInvoice = async () => {
         currentDate.getFullYear() === ngayKetThuc.getFullYear() &&
         currentDate.toDateString() === ngayKetThuc.toDateString()
       ) {
+
+        const formatDate = () => {
+          const today = new Date();
+          const day = String(today.getDate()).padStart(2, '0'); // Lấy ngày, thêm số 0 nếu cần
+          const month = String(today.getMonth() + 1).padStart(2, '0'); // Tháng bắt đầu từ 0, cần +1
+          const year = today.getFullYear(); // Lấy năm
+          return `${day}-${month}-${year}`; // Ghép thành chuỗi dd-mm-yyyy
+        };
+
+        const ngayGuiThongBao = formatDate();
+        console.log(ngayGuiThongBao);
+
+
         const notification = {
           tieuDe: 'Tạo hóa đơn kết thúc hợp đồng',
           tinNhan: `Hợp đồng phòng ${contract.thongtinphong.tenPhong} sẽ kết thúc vào ngày ${contract.ngayKetThuc}. Vui lòng tạo hóa đơn.`,
           idModel: contractId,
           loaiThongBao: 'xacNhanChamDut',
-          ngayGuiThongBao: Date.now(),
+          thoiGianGuiThongBao: Date.now(),
+          ngayGuiThongBao: ngayGuiThongBao
         };
 
         const ref = db.ref(`ThongBao/${contract.chuNha.maNguoiDung}`);
@@ -260,11 +221,25 @@ const checkAndNotifyMonthlyInvoice = async () => {
 
 
       ) {
+
+        const formatDate = () => {
+          const today = new Date();
+          const day = String(today.getDate()).padStart(2, '0'); // Lấy ngày, thêm số 0 nếu cần
+          const month = String(today.getMonth() + 1).padStart(2, '0'); // Tháng bắt đầu từ 0, cần +1
+          const year = today.getFullYear(); // Lấy năm
+          return `${day}-${month}-${year}`; // Ghép thành chuỗi dd-mm-yyyy
+        };
+
+        const ngayGuiThongBao = formatDate();
+        console.log(ngayGuiThongBao);
+
+
         const notification = {
           tieuDe: 'Tạo hóa đơn hàng tháng',
           tinNhan: `Hóa đơn tháng mới cho phòng ${contract.thongtinphong.tenPhong} cần được tạo.`,
           loaiThongBao: `invoiceCreation`,
-          ngayGuiThongBao: Date.now(),
+          thoiGianGuiThongBao: Date.now(),
+          ngayGuiThongBao: ngayGuiThongBao,
           idModel: contractId
         };
 
@@ -282,9 +257,6 @@ const checkAndNotifyMonthlyInvoice = async () => {
     console.error(`[ERROR] Lỗi khi kiểm tra và gửi thông báo hóa đơn: ${error.message}`);
   }
 }
-
-
-
 
 // Hàm thiết lập giám sát các hợp đồng PENDING
 function setupContractMonitoring() {
@@ -529,4 +501,4 @@ function startContractMonitoring() {
 }
 
 
-module.exports = { checkAndDeleteExpireOrders, checkAndUpdateExpiredContracts, checkAndUpdateExpiresSoonContracts, checkAndNotifyMonthlyInvoice, startContractMonitoring, monitorProcessingContracts }
+module.exports = { checkAndDeleteExpireOrders, checkAndUpdateExpiresSoonContracts, checkAndNotifyMonthlyInvoice, startContractMonitoring, monitorProcessingContracts }
