@@ -170,7 +170,7 @@ router.post('/callback-service', async (req, res) => {
 
                     // Kiểm tra nếu kieuHoaDon là "HoaDonChamDut"
                     if (billData.kieuHoaDon == "HoaDonChamDut") {
-                        const contractRef = dbFirestore.collection('HopDong').doc(billData.contractId);
+                        const contractRef = dbFirestore.collection('HopDong').doc(billData.idHopDong);
 
                         // Cập nhật trạng thái hợp đồng thành "TERMINATED"
                         await contractRef.set({
