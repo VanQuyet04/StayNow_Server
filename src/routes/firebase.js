@@ -5,7 +5,7 @@ const config = require('../config/config')
 
 
 // Đọc file json firebase trực tiếp
-const serviceAccount = require('../../service/staynowapp1-firebase-adminsdk.json')
+// const serviceAccount = require('../../service/staynowapp1-firebase-adminsdk.json')
 
 // Đọc file bí mật từ /etc/secrets
 const serviceAccount = JSON.parse(
