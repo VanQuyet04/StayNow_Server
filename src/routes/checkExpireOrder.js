@@ -45,11 +45,12 @@ async function checkAndDeleteExpireOrders() {
 // kiểm tra nếu các hợp đồng ACTIVE quá hạn hợp đồng thì tự chuyển đổi trạng thái hợp đồng
 // chi tiết:  quá 3 ngày chuyển qua TERMINATED
 async function checkAndUpdateExpiredContracts() {
+  console.log("Hàm check quá hạn hợp đồng đang chạy");
 
   const contractsRef = dbFirestore.collection('HopDong');
   const roomsRef = dbFirestore.collection('PhongTro');
   const currentDate = new Date(); // Ngày hiện tại
-  const threeDaysInMs = 4 * 24 * 60 * 60 * 1000;
+  const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
 
   try {
     const snapshot = await contractsRef.get();
@@ -71,7 +72,7 @@ async function checkAndUpdateExpiredContracts() {
         const roomId = contract.thongtinphong.maPhongTro;
 
         await contractsRef.doc(contractId).update({
-          trangThai: 'TERMINATED',
+          trangThai: 'TERMINATED_PROCESSING',
         });
 
         await roomsRef.doc(roomId).update({
@@ -82,7 +83,7 @@ async function checkAndUpdateExpiredContracts() {
 
         const notification = {
           tieuDe: 'Nhắc nhở thay đổi trạng thái hợp đồng',
-          tinNhan: `Hợp đồng với mã ${contract.maHopDong} đã quá hạn 3 ngày và đã được thay đổi trạng thái thành TERMINATED`,
+          tinNhan: `Hợp đồng với mã ${contract.maHopDong} đã quá hạn 3 ngày và đã được thay đổi trạng thái thành Chờ xử lý chấm dứt`,
           idModel: contractId,
           loaiThongBao: 'kiemtranhacnhohopdong',
           thoiGianGuiThongBao: Date.now(),
@@ -107,15 +108,14 @@ async function checkAndUpdateExpiredContracts() {
   }
 }
 
-//kiểm tra nếu hợp đồng sắp quá hạn(trước 3 ngày) thì thông báo đến cho người dùng
+//kiểm tra nếu hợp đồng sắp quá hạn(trước 3 ngày) thì chuyển trạng thái qua sắp hết hạn và thông báo đến cho người dùng
 async function checkAndUpdateExpiresSoonContracts() {
-  console.log("checkAndUpdateExpiresSoonContracts đang chạy");
+  console.log("hàm check kiểm tra sắp đến thời hạn đang chạy");
   const contractsRef = dbFirestore.collection('HopDong');
   const currentDate = new Date(); // Ngày hiện tại
-  const threeDaysInMs = 4 * 24 * 60 * 60 * 1000; // Số mili giây trong 4 ngày
+  const threeDaysInMs = 3 * 24 * 60 * 60 * 1000; // Số mili giây trong 4 ngày
 
   try {
-    console.log("Chạy vào try catch");
 
     const snapshot = await contractsRef.get();
 
@@ -149,7 +149,7 @@ async function checkAndUpdateExpiresSoonContracts() {
         for (const userId of userIds) {
           const ref = db.ref(`ThongBao/${userId}`);
           await ref.push(notification);
-          console.log(`đã noti cho ${userId}`);
+          console.log(`đã noti báo sắp hết hạn cho ${userId}`);
 
         }
 
