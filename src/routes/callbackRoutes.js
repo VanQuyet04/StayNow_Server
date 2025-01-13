@@ -176,6 +176,7 @@ router.post('/callback-service', async (req, res) => {
             merchant_user_id: dataJson.merchant_user_id,
             zp_user_id: dataJson.zp_user_id,
             status: 'PAID',
+            paymentDate:dataJson.server_time.toString(),
             updateAt: new Date()
         }
 
