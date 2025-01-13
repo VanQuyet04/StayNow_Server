@@ -31,11 +31,11 @@ router.post('/callback', async (req, res) => {
         // Nếu MAC hợp lệ, xử lý dữ liệu
         const dataJson = JSON.parse(dataStr); // Giải mã dữ liệu
         console.log("Thông tin thanh toán:", dataJson);
-        const app_trans_id = dataJson.app_trans_id.toString()
+        const appTransId = dataJson.app_trans_id.toString()
 
         //Tìm hóa đơn gốc từ transactionId
-        const paymentTransRef = await dbFirestore.collection('PaymentTransaction')
-            .doc(app_trans_id)
+        const paymentTransRef = await dbFirestore.collection('ThanhToanHopDong')
+            .doc(appTransId)
             .get();
 
         if (!paymentTransRef.exists) {
@@ -85,20 +85,20 @@ router.post('/callback', async (req, res) => {
         }
         //Tạo đối tượng lưu thông tin thanh toán từ callback
         const paymentTransaction = {
-            zp_trans_id: dataJson.zp_trans_id,
-            server_time: dataJson.server_time,
+            zpTransId: dataJson.zp_trans_id,
+            serverTime: dataJson.server_time,
             channel: dataJson.channel,
             merchant_user_id: dataJson.merchant_user_id,
-            zp_user_id: dataJson.zp_user_id,
+            zpUserId: dataJson.zp_user_id,
             status: 'PAID',
             updateAt: new Date()
         }
 
-        await dbFirestore.collection('PaymentTransaction')
-            .doc(app_trans_id)
+        await dbFirestore.collection('ThanhToanHopDong')
+            .doc(appTransId)
             .set(paymentTransaction, { merge: true });
 
-        console.log("Thanh toán thành công:", app_trans_id);
+        console.log("Thanh toán thành công:", appTransId);
 
         // Phản hồi lại Zalopay
         return res.status(200).json({ return_code: 1, return_message: "Success" });
@@ -135,11 +135,11 @@ router.post('/callback-service', async (req, res) => {
         // Nếu MAC hợp lệ, xử lý dữ liệu
         const dataJson = JSON.parse(dataStr); // Giải mã dữ liệu
         console.log("Thông tin thanh toán:", dataJson);
-        const app_trans_id = dataJson.app_trans_id.toString()
+        const appTransId = dataJson.app_trans_id.toString()
 
         //Tìm hóa đơn gốc từ transactionId
-        const paymentTransRef = await dbFirestore.collection('PaymentTransactionService')
-            .doc(app_trans_id)
+        const paymentTransRef = await dbFirestore.collection('ThanhToanDichVu')
+            .doc(appTransId)
             .get();
 
         if (!paymentTransRef.exists) {
@@ -162,29 +162,50 @@ router.post('/callback-service', async (req, res) => {
                     updatedAt: new Date()
                 }, { merge: true });
 
-                console.log("Cập nhật hoặc thêm mới thành công!");
+                // Lấy thông tin hóa đơn để kiểm tra kieuHoaDon
+                const billSnapshot = await billRef.get();
+
+                if (billSnapshot.exists) {
+                    const billData = billSnapshot.data();
+
+                    // Kiểm tra nếu kieuHoaDon là "HoaDonChamDut"
+                    if (billData.kieuHoaDon == "HoaDonChamDut") {
+                        const contractRef = dbFirestore.collection('HopDong').doc(billData.idHopDong);
+
+                        // Cập nhật trạng thái hợp đồng thành "TERMINATED"
+                        await contractRef.set({
+                            trangThai: 'TERMINATED',
+                            updatedAt: new Date()
+                        }, { merge: true });
+
+                        console.log("Cập nhật trạng thái hợp đồng thành TERMINATED thành công!");
+                    }
+                } else {
+                    console.log("Không tìm thấy hóa đơn với ID: ", originalTrans.billId);
+                }
+
             } catch (error) {
                 console.error("Lỗi khi cập nhật hoặc thêm mới: ", error);
             }
         }
-        
+
         //Tạo đối tượng lưu thông tin thanh toán từ callback
         const paymentTransaction = {
-            zp_trans_id: dataJson.zp_trans_id,
-            server_time: dataJson.server_time,
+            zpTransId: dataJson.zp_trans_id,
+            serverTime: dataJson.server_time,
             channel: dataJson.channel,
-            merchant_user_id: dataJson.merchant_user_id,
-            zp_user_id: dataJson.zp_user_id,
+            merchantUserId: dataJson.merchant_user_id,
+            zpUserId: dataJson.zp_user_id,
             status: 'PAID',
-            paymentDate:dataJson.server_time.toString(),
+            paymentDate: dataJson.server_time.toString(),
             updateAt: new Date()
         }
 
-        await dbFirestore.collection('PaymentTransactionService')
-            .doc(app_trans_id)
+        await dbFirestore.collection('ThanhToanDichVu')
+            .doc(appTransId)
             .set(paymentTransaction, { merge: true });
 
-        console.log("Thanh toán thành công:", app_trans_id);
+        console.log("Thanh toán thành công:", appTransId);
 
         // Phản hồi lại Zalopay
         return res.status(200).json({ return_code: 1, return_message: "Success" });

@@ -3,9 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 // Import các module
 const verifyToken = require('../routes/verifyToken');
-const { saveOtpToUserOtp, verifyOtpFromRealTime, resendOtp } = require('../routes/otp');
-const sendOtpEmail = require('../routes/email');
-
+const {verifyOtpFromRealTime, resendOtp,checkAndHandleOtp } = require('../routes/otp');
 const router = express.Router()
 
 router.post('/verify-token', async (req, res) => {
@@ -26,18 +24,14 @@ router.post('/verify-token', async (req, res) => {
         console.log("Email xác thực:", userEmail);
         console.log("UID xác thực:", userUid);
 
-        const otpCode = Math.floor(100000 + Math.random() * 900000);
-        const otpExpiry = Date.now() + 10 * 60 * 1000;
-
-        await saveOtpToUserOtp(userUid, userEmail, otpCode, otpExpiry);
-        const emailResult = await sendOtpEmail(userEmail, otpCode);
+        const result = await checkAndHandleOtp(userUid, userEmail);
 
         res.json({
-            message: 'Token hợp lệ, OTP đã được gửi và lưu vào bảng userOtp!',
+            message: result.message,
             uid: userUid,
             email: userEmail,
-            otpExpiry: new Date(otpExpiry).toISOString(),
-            emailResult
+            otpExpiry: new Date(result.otpExpiry).toISOString(),
+            status: result.status
         });
     } catch (error) {
         res.status(401).json({ error: 'Token không hợp lệ', details: error.message });
